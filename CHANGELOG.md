@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.1.0-dev.10 - 2026-10-08
+
+- Geometry, shape reporting and pfQuest clipping yield after another addon replaces the native mask setter.
+
 ## 0.1.0-dev.9 - 2026-10-08
 
 - Preserve foreign launcher ownership across repeated collection refreshes, including explicit additional names.

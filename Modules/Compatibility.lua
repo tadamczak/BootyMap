@@ -45,7 +45,7 @@ local function Quest()
         -- Keep pfQuest's renderer, cache, visibility rules, tooltips and nodes.
         -- Its public method accepts only self; native this/event remain intact.
         local result = lease.original(self)
-        if lease.enabled and ownedMask and self == lease.owner then
+        if lease.enabled and ownedMask and self == lease.owner and Map.Modules.NativeMinimap.GetGeometry() then
             local ok, reason = pcall(PinClip, lease, self)
             if not ok then Map.Modules.NativeMinimap.ReportInformationFailure(tostring(reason)) end
         end
@@ -81,7 +81,7 @@ function Compatibility.Apply(value, mapWidth, mapHeight)
     options, width, height, ownedMask = value, mapWidth, mapHeight, true
     local lease = {original = Env().GetMinimapShape, enabled = true}
     lease.guard = function()
-        if lease.enabled and ownedMask then
+        if lease.enabled and ownedMask and Map.Modules.NativeMinimap.GetGeometry() then
             if options.shape == "rounded" or options.shape == "octagon" then return "ROUND" end
             return "SQUARE"
         end
