@@ -207,6 +207,17 @@ function Runtime.ApplyPreset(name)
     return Commit(store, "preferences", ReplaceKnown(store.preferences, preset))
 end
 function Runtime.Open(command)
+    if command == "refresh" or command == "buttons" then
+        local ok, failure = Native.RefreshButtons()
+        if not ok then return false, failure end
+        if command == "buttons" then
+            local native = Native.GetState()
+            local message = native.buttonStatus ~= "" and native.buttonStatus or native.buttonNames
+            BootyLib.Print("BootyMap buttons: " .. (message ~= "" and message or "No collected buttons."))
+        end
+        Refresh()
+        return true
+    end
     if command == "enable" or command == "disable" then return Runtime.SetEnabled(command == "enable") end
     if command == "reset" then return Runtime.ResetLayout() end
     if command == "lock" then
@@ -227,7 +238,7 @@ function Runtime.Open(command)
         return Runtime.SetEditing(not Native.GetState().editing)
     end
     if command ~= "" and command ~= "settings" then
-        return false, "Use /bm, /bm settings, /bm edit, /bm lock, /bm reset, /bm enable or /bm disable."
+        return false, "Use /bm, /bm settings, /bm edit, /bm lock, /bm reset, /bm refresh, /bm buttons, /bm enable or /bm disable."
     end
     if not state.host and BootyLib.Core.Runtime.started then
         local ok, failure = BootyLib.Core.Runtime.Activate(Map.Product)

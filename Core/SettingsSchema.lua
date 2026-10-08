@@ -6,6 +6,18 @@ local positions = {{value = "native", text = "Native position"}, {value = "TOPLE
     {value = "TOPRIGHT", text = "Top right"}, {value = "BOTTOMLEFT", text = "Bottom left"},
     {value = "BOTTOMRIGHT", text = "Bottom right"}}
 local definitions = {
+    {key = "collectButtons", label = "Collect addon buttons", type = "checkbox", section = "Addon buttons",
+        tooltip = "Optional panel. Disable MinimapButtonFrame and reload before enabling collection. Native controls and quest pins are excluded."},
+    {key = "buttonSize", label = "Button size", type = "slider", min = 16, max = 48, step = 1, section = "Addon buttons"},
+    {key = "buttonSpacing", label = "Button spacing", type = "slider", min = 0, max = 16, step = 1, section = "Addon buttons"},
+    {key = "buttonColumns", label = "Panel columns", type = "slider", min = 1, max = 12, step = 1, section = "Addon buttons"},
+    {key = "buttonSide", label = "Panel position", type = "choice", section = "Addon buttons", choices = {
+        {value = "top", text = "Above map"}, {value = "bottom", text = "Below map"},
+        {value = "left", text = "Left of map"}, {value = "right", text = "Right of map"}}},
+    {key = "buttonOrder", label = "Button order (frame names, comma separated)", type = "text", section = "Addon buttons",
+        tooltip = "Listed buttons come first; remaining buttons sort by frame name. Use /bm buttons to list collected names."},
+    {key = "buttonExceptions", label = "Keep on minimap (frame names, comma separated)", type = "text", section = "Addon buttons",
+        tooltip = "These buttons retain their original parent, placement and drag handlers."},
     {key = "size", label = "Map size", type = "slider", min = 80, max = 400, step = 1, section = "Layout"},
     {key = "locked", label = "Lock position", type = "checkbox", section = "Layout",
         tooltip = "Unlock to allow dragging. Edit mode temporarily enables dragging without changing this preference."},

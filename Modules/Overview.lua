@@ -11,7 +11,7 @@ function Overview.Create(parent, host)
     local status = UI.CreateComponentLabel(canvas, "", "white")
     status:SetJustifyH("LEFT"); status:SetJustifyV("TOP")
     local help = UI.CreateComponentLabel(canvas,
-        "Open Settings to change map size, shape, border, zone text, zoom and native indicators. Settings apply immediately; shared profiles save and restore the complete layout.\n\nUse Edit to drag the minimap, then finish editing to return to your saved lock preference. Reset layout restores native placement, default size, locking and visible opacity. Reset all restores all map preferences.\n\nDisable ShaguTweaks minimap customization when choosing BootyMap as its owner. MinimapButtonFrame and addon buttons stay with their existing owners. pfQuest may keep quest markers inside the native circle on a square map. Additional clock rendering, coordinates and an addon-button panel are planned separately.", "white")
+        "Open Settings to change map size, shape, border, zone text, zoom and native indicators. Settings apply immediately; shared profiles save and restore the complete layout.\n\nUse Edit to drag the minimap, then finish editing to return to your saved lock preference. Reset layout restores native placement, default size, locking and visible opacity. Reset all restores all map preferences.\n\nThe optional addon-button panel has size, spacing, columns, position, order and exceptions. Use /bm buttons for collected frame names and /bm refresh to discover late-created buttons. Disable MinimapButtonFrame and reload before enabling collection. Native controls, quest pins and buttons with continuous update handlers remain with their owners. Disable conflicting ShaguTweaks minimap customization. pfQuest may keep quest markers inside the native circle on a square map. Additional clock rendering, coordinates and hover visibility are planned separately.", "white")
     help:SetJustifyH("LEFT"); help:SetJustifyV("TOP")
     local settings = UI.CreateButton(canvas, nil, "Settings", 104, 24)
     local edit = UI.CreateButton(canvas, nil, "Edit", 104, 24)
@@ -62,6 +62,8 @@ function Overview.Create(parent, host)
         local store, failure = Map.Database.Ensure()
         local message = native.active and "Minimap customizations are active." or "Native minimap customizations are disabled."
         if native.editing then message = message .. " Edit mode: drag the minimap to move it." end
+        if native.buttonStatus ~= "" then message = message .. "\n" .. native.buttonStatus
+        elseif native.buttonCount > 0 then message = message .. "\nAddon panel: " .. native.buttonCount .. " buttons." end
         if native.compatibility and native.compatibility ~= "" then message = message .. "\n" .. tostring(native.compatibility) end
         if native.foreignChanges and native.foreignChanges > 0 then
             message = message .. "\nAnother addon changed minimap controls. Disable and enable BootyMap after choosing one minimap owner."

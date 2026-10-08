@@ -4,9 +4,11 @@ Map.Modules.NativeMinimap = Native
 local UI = (Map.UI or BootyLib.UI).Components
 local Assert = assert
 local function Fail(message) Assert(false, message) end
-local state = {active = false, editing = false, restorationBlocked = false, foreignChanges = 0, compatibility = ""}
+local state = {active = false, editing = false, restorationBlocked = false, foreignChanges = 0, compatibility = "",
+    buttonCount = 0, buttonNames = "", buttonStatus = ""}
 local records, store, surface, editor, mask, pingSlot, zoneSlot = {}, nil, nil, nil, nil, nil, nil
 local failureObserver, positionObserver, dragging, dragPoints, RefreshEditor
+local buttonPanel, buttonEvents, buttonRecords = nil, nil, {}
 local nativeMask, squareMask = "Textures\\MinimapMask", "Interface\\Buttons\\WHITE8X8"
 local fonts = {friz = "Fonts\\FRIZQT__.TTF", arial = "Fonts\\ARIALN.TTF"}
 local widgetSpecs = {
@@ -75,6 +77,8 @@ local function ReadAlpha(frame) return frame:GetAlpha() end
 local function SetAlpha(frame, value) return frame:SetAlpha(value) end
 local function ReadMovable(frame) return Enabled(frame:IsMovable()) end
 local function SetMovable(frame, value) return frame:SetMovable(value and 1 or nil) end
+local function ReadClamp(frame) return Enabled(frame:IsClampedToScreen()) end
+local function SetClamp(frame, value) return frame:SetClampedToScreen(value and 1 or nil) end
 local function ReadWheel(frame) return Enabled(frame:IsMouseWheelEnabled()) end
 local function SetWheel(frame, value) return frame:EnableMouseWheel(value and 1 or nil) end
 local function ReadZoom(frame) return frame:GetZoom() end
@@ -501,6 +505,7 @@ local function DragStop()
     local x, y = MapCenter()
     x, y = Position(x, y, store.preferences)
     if positionObserver then Must(positionObserver, x, y) end
+    if store.preferences.collectButtons then Must(Native.RefreshButtons) end
 end
 local function Editor()
     if editor then return end
@@ -547,6 +552,142 @@ local function HideOwn(frame)
     if Enabled(frame:IsShown()) then return false, "Minimap surface hiding was declined." end
     return true
 end
+local function ReadParent(frame) return frame:GetParent() end
+local function SetParent(frame, value) return frame:SetParent(value) end
+local function ReadScale(frame) return frame:GetScale() end
+local function SetScale(frame, value) return frame:SetScale(value) end
+local function ReadLevel(frame) return frame:GetFrameLevel() end
+local function SetLevel(frame, value) return frame:SetFrameLevel(value) end
+local function ReadStrata(frame) return frame:GetFrameStrata() end
+local function SetStrata(frame, value) return frame:SetFrameStrata(value) end
+local buttonKeys = {"parent", "scale", "width", "height", "strata", "level", "points"}
+local function ReleaseButton(record)
+    local parent = record.leases.parent
+    if parent and record.frame:GetParent() ~= parent.applied then
+        -- Another collector took this button. Do not restore geometry into its
+        -- new parent, even if individual widths/points happen to match ours.
+        record.leases = {}; state.foreignChanges = state.foreignChanges + 1
+    end
+    Script(record, "OnDragStart", nil); Script(record, "OnDragStop", nil)
+    for _, key in ipairs(buttonKeys) do
+        local ok, reason = ReleaseProperty(record, key)
+        if not ok then Fail(reason) end
+    end
+    buttonRecords[record.name] = nil
+end
+local function StopButtons()
+    if buttonEvents then buttonEvents:UnregisterAllEvents() end
+    for _, record in pairs(buttonRecords) do ReleaseButton(record) end
+    local ok, reason = HideOwn(buttonPanel)
+    if not ok then Fail(reason) end
+    state.buttonCount, state.buttonNames = 0, ""
+    state.buttonStatus = ""
+end
+local nativeButtons = {MinimapZoneTextButton = true, MinimapZoomIn = true, MinimapZoomOut = true,
+    GameTimeFrame = true, MiniMapTrackingFrame = true, MiniMapMailFrame = true, MiniMapBattlefieldFrame = true,
+    MiniMapWorldMapButton = true, MiniMapMeetingStoneFrame = true, MiniMapTracking = true,
+    MiniMapVoiceChatFrame = true, MiniMapLFGFrame = true}
+local function ButtonCandidate(frame, exceptions)
+    if not frame.GetObjectType or not frame.GetName or not frame.GetScript then return false end
+    local name, kind = frame:GetName(), frame:GetObjectType()
+    if not name or nativeButtons[name] or exceptions[name] or frame.minimap or
+        string.find(name, "^pfMap") or string.find(name, "^pfQuest") or string.find(name, "^MBF") then return false end
+    if kind ~= "Button" and kind ~= "CheckButton" then return false end
+    -- Positional OnUpdate owners cannot be safely suspended: their callback may
+    -- also drive animations or status. Keep those buttons with their addon.
+    return frame:GetScript("OnUpdate") == nil and
+        (frame:GetScript("OnClick") ~= nil or frame:GetScript("OnMouseUp") ~= nil)
+end
+local function NoDrag() end
+local function Buttons(options)
+    if not options.collectButtons then StopButtons(); return end
+    if Global("MinimapButtonFrame") or (type(IsAddOnLoaded) == "function" and Enabled(IsAddOnLoaded("MinimapButtonFrame"))) then
+        StopButtons(); state.buttonStatus = "MinimapButtonFrame owns addon buttons; disable it and reload to use this panel."
+        return
+    end
+    state.buttonStatus = ""
+    if not buttonPanel then
+        buttonPanel = UI.CreateContainer("BootyMapButtonPanel", UIParent)
+        buttonPanel:SetFrameStrata("MEDIUM"); UI.Window.ApplyProjectSurface(buttonPanel)
+        state.buttonPanel = buttonPanel
+        buttonEvents = UI.CreateContainer("BootyMapButtonEvents", UIParent)
+        buttonEvents:SetScript("OnEvent", function() Native.RefreshButtons() end)
+    end
+    buttonEvents:RegisterEvent("ADDON_LOADED"); buttonEvents:RegisterEvent("PLAYER_ENTERING_WORLD")
+    local exceptions = Map.Services.Configuration.ParseButtonNames(options.buttonExceptions)
+    local ranks = Map.Services.Configuration.ParseButtonNames(options.buttonOrder)
+    local list, seen = {}, {}
+    local function Add(frame)
+        if not seen[frame] and ButtonCandidate(frame, exceptions) then
+            seen[frame] = true; table.insert(list, frame)
+        end
+    end
+    for _, record in pairs(buttonRecords) do
+        if record.frame:GetParent() ~= buttonPanel or not ButtonCandidate(record.frame, exceptions) then ReleaseButton(record)
+        else Add(record.frame) end
+    end
+    -- Scan only the minimap and one container level. Never enumerate unrelated
+    -- global frames or collect unnamed pins; discovery runs on events/refresh.
+    for _, owner in ipairs({Minimap, MinimapCluster}) do
+        for _, child in ipairs({owner:GetChildren()}) do
+            Add(child)
+            if child ~= Minimap and child:GetObjectType() == "Frame" and child.GetChildren then
+                for _, nested in ipairs({child:GetChildren()}) do Add(nested) end
+            end
+        end
+    end
+    table.sort(list, function(a, b)
+        local an, bn = a:GetName(), b:GetName()
+        local ar, br = ranks[an] or 9999, ranks[bn] or 9999
+        if ar ~= br then return ar < br end
+        return an < bn
+    end)
+    local count = table.getn(list)
+    state.buttonCount = count
+    if count == 0 then state.buttonNames = ""; buttonPanel:Hide(); return end
+    local columns, size, gap = math.min(count, options.buttonColumns), options.buttonSize, options.buttonSpacing
+    local rows, names = math.ceil(count / columns), {}
+    buttonPanel:SetWidth(12 + columns * size + (columns - 1) * gap)
+    buttonPanel:SetHeight(12 + rows * size + (rows - 1) * gap)
+    local ratio = Minimap:GetEffectiveScale() / UIParent:GetEffectiveScale()
+    local x, y = MapCenter()
+    local half, pw, ph = options.size * ratio / 2, buttonPanel:GetWidth(), buttonPanel:GetHeight()
+    local side, screenW, screenH = options.buttonSide, UIParent:GetWidth(), UIParent:GetHeight()
+    -- When the map touches a screen edge, prefer the opposite side over
+    -- clamping a panel on top of the map. Persist the user's requested side.
+    if side == "top" and y + half + 8 + ph > screenH then side = "bottom"
+    elseif side == "bottom" and y - half - 8 - ph < 0 then side = "top"
+    elseif side == "left" and x - half - 8 - pw < 0 then side = "right"
+    elseif side == "right" and x + half + 8 + pw > screenW then side = "left" end
+    if side == "top" then y = y + half + 8 + ph / 2
+    elseif side == "bottom" then y = y - half - 8 - ph / 2
+    elseif side == "left" then x = x - half - 8 - pw / 2
+    else x = x + half + 8 + pw / 2 end
+    x = math.max(pw / 2, math.min(UIParent:GetWidth() - pw / 2, x))
+    y = math.max(ph / 2, math.min(UIParent:GetHeight() - ph / 2, y))
+    buttonPanel:ClearAllPoints(); buttonPanel:SetPoint("CENTER", UIParent, "BOTTOMLEFT", x, y)
+    for index, frame in ipairs(list) do
+        local record = Record(frame:GetName(), frame); buttonRecords[record.name] = record
+        Property(record, "parent", ReadParent, SetParent, buttonPanel)
+        Property(record, "scale", ReadScale, SetScale, 1)
+        Property(record, "width", ReadWidth, SetWidth, size)
+        Property(record, "height", ReadHeight, SetHeight, size)
+        Property(record, "strata", ReadStrata, SetStrata, "MEDIUM")
+        Property(record, "level", ReadLevel, SetLevel, buttonPanel:GetFrameLevel() + 1)
+        local column, row = math.mod(index - 1, columns), math.floor((index - 1) / columns)
+        Property(record, "points", ReadPoints, SetPoints, {{"TOPLEFT", buttonPanel, "TOPLEFT", 6 + column * (size + gap), -6 - row * (size + gap)}})
+        Script(record, "OnDragStart", NoDrag); Script(record, "OnDragStop", NoDrag)
+        names[index] = record.name
+    end
+    state.buttonNames = table.concat(names, ", ")
+    buttonPanel:Show()
+end
+function Native.RefreshButtons()
+    if not state.active or not store then return false, "Enable BootyMap before refreshing buttons." end
+    local ok, reason = Call(Buttons, store.preferences)
+    if not ok then return Notify(reason) end
+    return true
+end
 function Native.Stop()
     state.active, state.editing = false, false
     if pingSlot then pingSlot.enabled = false end
@@ -558,6 +699,7 @@ function Native.Stop()
         if not ran or ok == false then table.insert(failures, tostring(ran and reason or ok)) end
     end
     Attempt(CancelDrag)
+    Attempt(StopButtons)
     Attempt(HideOwn, editor); Attempt(HideOwn, surface)
     local env = type(getfenv) == "function" and getfenv(0) or _G
     if pingSlot then
@@ -573,9 +715,14 @@ function Native.Stop()
         if record.visibility then record.visibility.enabled = false end
         for _, lease in pairs(record.scripts) do lease.enabled = false end
         for key in pairs(record.scripts) do Attempt(Script, record, key, nil) end
-        for key in pairs(record.leases) do Attempt(ReleaseProperty, record, key) end
+        for key in pairs(record.leases) do
+            if key ~= "clamped" then Attempt(ReleaseProperty, record, key) end
+        end
         Attempt(Hidden, record, false)
     end
+    -- Re-enable native clamping only after original dimensions and anchors are
+    -- restored; early clamping can move an edge anchor and mimic a foreign write.
+    for _, record in pairs(records) do Attempt(ReleaseProperty, record, "clamped") end
     state.restorationBlocked = table.getn(failures) > 0
     if state.restorationBlocked then state.failure = table.concat(failures, "; "); return false, state.failure end
     records, store, state.failure = {}, nil, nil
@@ -587,6 +734,10 @@ local function ApplyAll()
     state.compatibility = ""
     local map, cluster = Record("Minimap"), Record("MinimapCluster")
     if not map or not cluster then Fail("Native minimap is unavailable.") end
+    -- Clamp the visible map in Position, not the larger native cluster with
+    -- its zone/button margins. Keep both flags leased for reversible ownership.
+    Property(cluster, "clamped", ReadClamp, SetClamp, false)
+    Property(map, "clamped", ReadClamp, SetClamp, false)
     local originalSize = map.leases.width and map.leases.width.original or Minimap:GetWidth()
     -- Capture texture geometry before changing the map that owns its anchors.
     local border = Record("MinimapBorder")
@@ -598,7 +749,7 @@ local function ApplyAll()
     Property(map, "zoom", ReadZoom, SetZoom, options.zoom >= 0 and math.min(options.zoom, Minimap:GetZoomLevels() - 1) or nil)
     if Finite(options.x) and Finite(options.y) then Position(options.x, options.y, options)
     else Property(cluster, "points", ReadPoints, SetPoints, nil) end
-    Border(options); Zone(options); Widgets(options)
+    Border(options); Zone(options); Widgets(options); Buttons(options)
     if options.shape == "square" and (Global("pfQuest") or Global("pfDB")) then
         Note("pfQuest corner clipping may remain circular; BootyMap does not modify pfQuest or pfUI globals.")
     end

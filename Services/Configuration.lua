@@ -7,10 +7,13 @@ local defaults = {
     hideZoom = false, hideClock = false, hideTracking = false, hideMail = false, hideBattlefield = false,
     zoomPosition = "native", clockPosition = "native", trackingPosition = "native",
     mailPosition = "native", battlefieldPosition = "native",
+    collectButtons = false, buttonSize = 28, buttonSpacing = 4, buttonColumns = 4,
+    buttonSide = "bottom", buttonOrder = "", buttonExceptions = "",
 }
 local options = {
     shape = {circle = true, square = true}, border = {native = true, booty = true, none = true},
     zonePosition = {top = true, bottom = true}, zoneFont = {native = true, friz = true, arial = true},
+    buttonSide = {top = true, bottom = true, left = true, right = true},
 }
 local positions = {native = true, TOPLEFT = true, TOPRIGHT = true, BOTTOMLEFT = true, BOTTOMRIGHT = true}
 local function Finite(value)
@@ -30,6 +33,16 @@ end
 function Configuration.IsKnown(key) return defaults[key] ~= nil or key == "x" or key == "y" end
 function Configuration.GetDefault(key) return Configuration.Copy(defaults[key]) end
 function Configuration.Defaults() return Configuration.Copy(defaults) end
+function Configuration.ParseButtonNames(value)
+    if type(value) ~= "string" or string.len(value) > 2048 then return nil end
+    local result, count = {}, 0
+    for name in string.gfind(value, "[^,]+") do
+        name = string.gsub(string.gsub(name, "^%s+", ""), "%s+$", "")
+        if not string.find(name, "^[%a_][%w_]*$") then return nil end
+        if not result[name] then count = count + 1; result[name] = count end
+    end
+    return result
+end
 function Configuration.ValidateValue(key, value)
     if not Configuration.IsKnown(key) then return false, "Unknown minimap setting: " .. tostring(key) end
     -- Nil restores a known setting's default; coordinates retain native placement.
@@ -38,6 +51,10 @@ function Configuration.ValidateValue(key, value)
     if key == "x" or key == "y" then valid = Finite(value)
     elseif key == "size" then valid = Integer(value, 80, 400)
     elseif key == "zoneFontSize" then valid = Integer(value, 8, 24)
+    elseif key == "buttonSize" then valid = Integer(value, 16, 48)
+    elseif key == "buttonSpacing" then valid = Integer(value, 0, 16)
+    elseif key == "buttonColumns" then valid = Integer(value, 1, 12)
+    elseif key == "buttonOrder" or key == "buttonExceptions" then valid = Configuration.ParseButtonNames(value) ~= nil
     elseif key == "zoom" then valid = Integer(value, -1, 5)
     elseif key == "alpha" then valid = Finite(value) and value >= 0 and value <= 1
     elseif options[key] then valid = type(value) == "string" and options[key][value]

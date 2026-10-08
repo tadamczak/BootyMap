@@ -23,11 +23,13 @@ Use it on its own with BootyLib or inside Booty Suite.
   battleground controls, when those controls are available in the client.
 - Classic, Booty and Compact presets, layout rescue and full preference reset.
 - Shared settings profiles that include the map's saved placement.
+- Optional addon-button panel: size, spacing, columns, side, custom order and
+  exceptions that keep selected buttons on the minimap. Panel placement flips
+  to the opposite side when needed near a screen edge.
 - Disabling BootyMap restores the native state captured when it was enabled.
 
 This first development build awaits verification in the game client. An
-addon-button panel, coordinates, additional clock display and hover visibility
-are planned additions.
+coordinates, additional clock display and hover visibility are planned additions.
 
 ## Installation
 
@@ -57,6 +59,13 @@ apply BootyMap again. Disable also ends editing. Reset commands remain available
 when BootyMap customizations are disabled; corrected preferences apply when you
 enable them again.
 
+In **Map > Addon buttons**, enable collection and choose panel layout. Custom
+order and exceptions use comma-separated button frame names; `/bm buttons`
+lists collected names. Unlisted buttons sort alphabetically. Hidden buttons
+keep their slots and native visibility. `/bm refresh` discovers buttons created
+late; normal discovery also runs when addons load or you enter the world.
+Disabling collection restores the buttons' original layouts.
+
 ## Compatibility
 
 Choose one owner for minimap customization. Disable ShaguTweaks MiniMap Tweaks,
@@ -65,8 +74,11 @@ then reload the UI. Other addons can change the same minimap controls, fonts,
 mask or mouse handlers. BootyMap reports detected conflicts; it cannot guarantee
 compatibility with every minimap replacement.
 
-Existing addon buttons and MinimapButtonFrame stay with their current owners.
-BootyMap's first version does not collect or rearrange addon buttons. Native mail,
+Collection is off by default. Disable MinimapButtonFrame and reload before using
+BootyMap's panel; if it is active, collection pauses with a status message.
+Native controls, quest pins, unnamed buttons and buttons with continuous update
+handlers keep their owners. Unusual launchers may require a separate integration.
+Native mail,
 tracking and battleground actions keep their existing click behavior and
 tooltips; choosing visibility does not invent a status the client has not shown.
 
