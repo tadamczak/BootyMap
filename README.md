@@ -23,13 +23,15 @@ Use it on its own with BootyLib or inside Booty Suite.
   battleground controls, when those controls are available in the client.
 - Classic, Booty and Compact presets, layout rescue and full preference reset.
 - Shared settings profiles that include the map's saved placement.
+- Digital local/server clock with 12/24-hour format and player coordinates.
+- Information font, size, color and above/below placement, with edge adjustment.
 - Optional addon-button panel: size, spacing, columns, side, custom order and
   exceptions that keep selected buttons on the minimap. Panel placement flips
   to the opposite side when needed near a screen edge.
 - Disabling BootyMap restores the native state captured when it was enabled.
 
-This first development build awaits verification in the game client. An
-coordinates, additional clock display and hover visibility are planned additions.
+This development build awaits verification in the game client. An
+hover visibility and further compatible shapes are planned additions.
 
 ## Installation
 
@@ -65,6 +67,13 @@ lists collected names. Unlisted buttons sort alphabetically. Hidden buttons
 keep their slots and native visibility. `/bm refresh` discovers buttons created
 late; normal discovery also runs when addons load or you enter the world.
 Disabling collection restores the buttons' original layouts.
+
+In **Map > Information**, enable the digital clock or player coordinates. Choose
+local or server time, 12/24-hour format and information appearance. Coordinates
+refresh up to four times per second; while the world map is open or position is
+unavailable they show `--, --`, preserving the zone you are browsing. Close the
+world map to resume coordinates. Both displays default off and use no update
+handler when disabled or hidden. Information settings are included in profiles.
 
 ## Compatibility
 

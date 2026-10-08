@@ -9,11 +9,17 @@ local defaults = {
     mailPosition = "native", battlefieldPosition = "native",
     collectButtons = false, buttonSize = 28, buttonSpacing = 4, buttonColumns = 4,
     buttonSide = "bottom", buttonOrder = "", buttonExceptions = "",
+    clockVisible = false, clockSource = "localTime", clockFormat = "24", clockPositionText = "bottom",
+    coordsVisible = false, coordsPositionText = "bottom", informationFont = "friz",
+    informationFontSize = 12, informationColor = {1, 0.82, 0},
 }
 local options = {
     shape = {circle = true, square = true}, border = {native = true, booty = true, none = true},
     zonePosition = {top = true, bottom = true}, zoneFont = {native = true, friz = true, arial = true},
     buttonSide = {top = true, bottom = true, left = true, right = true},
+    clockSource = {localTime = true, server = true}, clockFormat = {["12"] = true, ["24"] = true},
+    clockPositionText = {top = true, bottom = true}, coordsPositionText = {top = true, bottom = true},
+    informationFont = {friz = true, arial = true},
 }
 local positions = {native = true, TOPLEFT = true, TOPRIGHT = true, BOTTOMLEFT = true, BOTTOMRIGHT = true}
 local function Finite(value)
@@ -50,7 +56,7 @@ function Configuration.ValidateValue(key, value)
     local valid
     if key == "x" or key == "y" then valid = Finite(value)
     elseif key == "size" then valid = Integer(value, 80, 400)
-    elseif key == "zoneFontSize" then valid = Integer(value, 8, 24)
+    elseif key == "zoneFontSize" or key == "informationFontSize" then valid = Integer(value, 8, 24)
     elseif key == "buttonSize" then valid = Integer(value, 16, 48)
     elseif key == "buttonSpacing" then valid = Integer(value, 0, 16)
     elseif key == "buttonColumns" then valid = Integer(value, 1, 12)
@@ -59,7 +65,7 @@ function Configuration.ValidateValue(key, value)
     elseif key == "alpha" then valid = Finite(value) and value >= 0 and value <= 1
     elseif options[key] then valid = type(value) == "string" and options[key][value]
     elseif positions[key] or string.find(key, "Position$") then valid = type(value) == "string" and positions[value]
-    elseif key == "zoneColor" then
+    elseif key == "zoneColor" or key == "informationColor" then
         valid = type(value) == "table"
         if valid then
             for index = 1, 3 do valid = valid and Finite(value[index]) and value[index] >= 0 and value[index] <= 1 end

@@ -101,13 +101,30 @@ local function Record(name, frame)
     if not record then record = {name = name, frame = frame, leases = {}, scripts = {}}; records[name] = record end
     return record
 end
+local function CaptureClusterGeometry(record, lease)
+    if record.name ~= "MinimapCluster" then return end
+    local x, y = record.frame:GetCenter()
+    local ratio = record.frame:GetEffectiveScale() / UIParent:GetEffectiveScale()
+    lease.centerX, lease.centerY = x * ratio, y * ratio
+    lease.clusterWidth, lease.clusterHeight = record.frame:GetWidth(), record.frame:GetHeight()
+end
+local function SameClusterGeometry(record, lease, current)
+    if record.name ~= "MinimapCluster" or not lease.centerX or table.getn(current) ~= 1 then return false end
+    local relative = current[1][2]
+    if relative ~= nil and relative ~= UIParent and relative ~= "UIParent" then return false end
+    local x, y = record.frame:GetCenter()
+    local ratio = record.frame:GetEffectiveScale() / UIParent:GetEffectiveScale()
+    return Finite(x) and Finite(y) and Equal(x * ratio, lease.centerX, 0.001) and
+        Equal(y * ratio, lease.centerY, 0.001) and Equal(record.frame:GetWidth(), lease.clusterWidth, 0.001) and
+        Equal(record.frame:GetHeight(), lease.clusterHeight, 0.001)
+end
 local function ReleaseProperty(record, key)
     local lease = record.leases[key]
     if not lease then return true end
     local ok, current = Call(lease.read, record.frame)
     if not ok then return false, tostring(current) end
     if PropertyEqual(key, current, lease.original) then record.leases[key] = nil; return true end
-    if not PropertyEqual(key, current, lease.applied) then
+    if not PropertyEqual(key, current, lease.applied) and not (key == "points" and SameClusterGeometry(record, lease, current)) then
         state.foreignChanges = state.foreignChanges + 1; record.leases[key] = nil; return true
     end
     local written, reason = Call(lease.write, record.frame, lease.original)
@@ -120,7 +137,9 @@ local function Property(record, key, read, write, desired)
     local inspected, actual = Call(read, record.frame)
     if not inspected then Fail(tostring(actual)) end
     local lease = record.leases[key]
-    if lease and not PropertyEqual(key, actual, lease.applied) then Fail(record.name .. " " .. key .. " has another owner.") end
+    if lease and not PropertyEqual(key, actual, lease.applied) and not (key == "points" and SameClusterGeometry(record, lease, actual)) then
+        Fail(record.name .. " " .. key .. " has another owner.")
+    end
     if not lease then lease = {read = read, write = write, original = actual}; record.leases[key] = lease end
     if lease.applied ~= nil and PropertyEqual(key, actual, desired) then return end
     lease.applied = desired
@@ -129,6 +148,7 @@ local function Property(record, key, read, write, desired)
     if readOK then lease.applied = after end
     if not written then Fail(tostring(reason)) end
     if reason == false or not readOK or not PropertyEqual(key, after, desired) then Fail(WriteFailure(record, key, desired, after)) end
+    if key == "points" then CaptureClusterGeometry(record, lease) end
 end
 local function ReleaseSlot(owner, key, original, guard, script)
     local current = script and owner:GetScript(key) or owner[key]
@@ -489,6 +509,7 @@ local function CancelDrag()
     dragPoints = nil
 end
 local function DragStart()
+    if dragging then return end
     if not state.active or not store or not (state.editing or store.preferences.locked == false) then return end
     local record = records.MinimapCluster
     -- Own a points lease before native StartMoving creates its temporary anchor.
@@ -505,6 +526,7 @@ local function DragStop()
     local x, y = MapCenter()
     x, y = Position(x, y, store.preferences)
     if positionObserver then Must(positionObserver, x, y) end
+    Map.Modules.Information.Apply(store.preferences)
     if store.preferences.collectButtons then Must(Native.RefreshButtons) end
 end
 local function Editor()
@@ -653,14 +675,15 @@ local function Buttons(options)
     local x, y = MapCenter()
     local half, pw, ph = options.size * ratio / 2, buttonPanel:GetWidth(), buttonPanel:GetHeight()
     local side, screenW, screenH = options.buttonSide, UIParent:GetWidth(), UIParent:GetHeight()
+    local panelGap = Map.Modules.Information.GetPanelGap
     -- When the map touches a screen edge, prefer the opposite side over
     -- clamping a panel on top of the map. Persist the user's requested side.
-    if side == "top" and y + half + 8 + ph > screenH then side = "bottom"
-    elseif side == "bottom" and y - half - 8 - ph < 0 then side = "top"
+    if side == "top" and y + half + panelGap(side) + ph > screenH then side = "bottom"
+    elseif side == "bottom" and y - half - panelGap(side) - ph < 0 then side = "top"
     elseif side == "left" and x - half - 8 - pw < 0 then side = "right"
     elseif side == "right" and x + half + 8 + pw > screenW then side = "left" end
-    if side == "top" then y = y + half + 8 + ph / 2
-    elseif side == "bottom" then y = y - half - 8 - ph / 2
+    if side == "top" then y = y + half + panelGap(side) + ph / 2
+    elseif side == "bottom" then y = y - half - panelGap(side) - ph / 2
     elseif side == "left" then x = x - half - 8 - pw / 2
     else x = x + half + 8 + pw / 2 end
     x = math.max(pw / 2, math.min(UIParent:GetWidth() - pw / 2, x))
@@ -699,6 +722,7 @@ function Native.Stop()
         if not ran or ok == false then table.insert(failures, tostring(ran and reason or ok)) end
     end
     Attempt(CancelDrag)
+    Attempt(Map.Modules.Information.Stop)
     Attempt(StopButtons)
     Attempt(HideOwn, editor); Attempt(HideOwn, surface)
     local env = type(getfenv) == "function" and getfenv(0) or _G
@@ -730,6 +754,9 @@ function Native.Stop()
 end
 local function ApplyAll()
     CheckOwner()
+    -- StartMoving writes transient anchors owned by this drag session. Resolve
+    -- them before a settings/profile refresh performs ownership comparisons.
+    CancelDrag()
     local options = store.preferences
     state.compatibility = ""
     local map, cluster = Record("Minimap"), Record("MinimapCluster")
@@ -749,7 +776,9 @@ local function ApplyAll()
     Property(map, "zoom", ReadZoom, SetZoom, options.zoom >= 0 and math.min(options.zoom, Minimap:GetZoomLevels() - 1) or nil)
     if Finite(options.x) and Finite(options.y) then Position(options.x, options.y, options)
     else Property(cluster, "points", ReadPoints, SetPoints, nil) end
-    Border(options); Zone(options); Widgets(options); Buttons(options)
+    Border(options); Zone(options); Widgets(options)
+    Map.Modules.Information.Apply(options)
+    Buttons(options)
     if options.shape == "square" and (Global("pfQuest") or Global("pfDB")) then
         Note("pfQuest corner clipping may remain circular; BootyMap does not modify pfQuest or pfUI globals.")
     end
@@ -777,5 +806,6 @@ function Native.Start(value)
     return ok, reason
 end
 function Native.GetState() return state end
+function Native.ReportInformationFailure(reason) return Notify(reason) end
 function Native.SetFailureObserver(callback) failureObserver = type(callback) == "function" and callback or nil end
 function Native.SetPositionObserver(callback) positionObserver = type(callback) == "function" and callback or nil end

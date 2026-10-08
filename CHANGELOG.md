@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.1.0-dev.4 - 2026-10-08
+
+- Fix false cluster ownership failures when settings refresh during native dragging.
+- Add digital local/server time in12/24-hour format and throttled player coordinates.
+- Add information position/font/color settings and profile support, with edge placement and panel spacing.
+- Preserve an open world map's selected zone; disable information handlers when hidden or off.
+- Native game-client acceptance remains pending.
+
 ## 0.1.0-dev.3 - 2026-10-08
 
 - Allow the visible minimap to touch screen edges in Edit; restore native clamp flags when disabled.

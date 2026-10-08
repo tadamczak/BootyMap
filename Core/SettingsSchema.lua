@@ -6,6 +6,21 @@ local positions = {{value = "native", text = "Native position"}, {value = "TOPLE
     {value = "TOPRIGHT", text = "Top right"}, {value = "BOTTOMLEFT", text = "Bottom left"},
     {value = "BOTTOMRIGHT", text = "Bottom right"}}
 local definitions = {
+    {key = "clockVisible", label = "Show digital clock", type = "checkbox", section = "Information"},
+    {key = "clockSource", label = "Clock time", type = "choice", section = "Information", choices = {
+        {value = "localTime", text = "Local time"}, {value = "server", text = "Server time"}}},
+    {key = "clockFormat", label = "Clock format", type = "choice", section = "Information", choices = {
+        {value = "24", text = "24 hour"}, {value = "12", text = "12 hour (AM/PM)"}}},
+    {key = "clockPositionText", label = "Digital clock position", type = "choice", section = "Information", choices = {
+        {value = "top", text = "Above map"}, {value = "bottom", text = "Below map"}}},
+    {key = "coordsVisible", label = "Show player coordinates", type = "checkbox", section = "Information",
+        tooltip = "Updates four times per second. Shows --, -- while the world map is open or coordinates are unavailable, preserving the browsed zone."},
+    {key = "coordsPositionText", label = "Coordinates position", type = "choice", section = "Information", choices = {
+        {value = "top", text = "Above map"}, {value = "bottom", text = "Below map"}}},
+    {key = "informationFont", label = "Information font", type = "choice", section = "Information", choices = {
+        {value = "friz", text = "Friz Quadrata"}, {value = "arial", text = "Arial Narrow"}}},
+    {key = "informationFontSize", label = "Information font size", type = "slider", min = 8, max = 24, step = 1, section = "Information"},
+    {key = "informationColor", label = "Information color", type = "color", section = "Information"},
     {key = "collectButtons", label = "Collect addon buttons", type = "checkbox", section = "Addon buttons",
         tooltip = "Optional panel. Disable MinimapButtonFrame and reload before enabling collection. Native controls and quest pins are excluded."},
     {key = "buttonSize", label = "Button size", type = "slider", min = 16, max = 48, step = 1, section = "Addon buttons"},
