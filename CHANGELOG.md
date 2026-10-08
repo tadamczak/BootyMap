@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.1.0-dev.8 - 2026-10-08
+
+- Prevent cut-corner clicks from sending pings outside custom map shapes.
+- Use valid native mouse scripts for explicitly included plain-frame launchers.
+- Update in-game help for custom shapes and extra launchers.
+
 ## 0.1.0-dev.7 - 2026-10-08
 
 - Add rounded-square and octagonal masks with matching boundaries; explicit extra launcher names preserve callbacks and exclude continuous workers. Native rendering/input acceptance pending.

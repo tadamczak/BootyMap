@@ -326,7 +326,7 @@ local function MouseUp(original)
     local cx, cy = Minimap:GetCenter()
     x, y = x / scale + (Global("CURSOR_OFFSET_X") or -7) - cx, y / scale + (Global("CURSOR_OFFSET_Y") or -9) - cy
     if x * x + y * y >= Minimap:GetWidth() * Minimap:GetWidth() / 4 and
-        math.abs(x) <= Minimap:GetWidth() / 2 and math.abs(y) <= Minimap:GetHeight() / 2 then
+        Map.Services.Geometry.Contains(store.preferences.shape, Minimap:GetWidth(), Minimap:GetHeight(), x, y) then
         Must(Minimap.PingLocation, Minimap, x, y)
     end
 end
@@ -628,7 +628,7 @@ local function ButtonCandidate(frame, exceptions, includes)
     -- Positional OnUpdate owners cannot be safely suspended: their callback may
     -- also drive animations or status. Keep those buttons with their addon.
     return frame:GetScript("OnUpdate") == nil and
-        (frame:GetScript("OnClick") ~= nil or frame:GetScript("OnMouseUp") ~= nil)
+        (frame:GetScript("OnMouseUp") ~= nil or (kind ~= "Frame" and frame:GetScript("OnClick") ~= nil))
 end
 local function NoDrag() end
 local function Buttons(options)
