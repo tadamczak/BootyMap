@@ -30,15 +30,27 @@ local function Must(callback, ...)
     if result == false then Fail("A native minimap write was declined.") end
     return result
 end
-local function Equal(a, b)
+local function Equal(a, b, tolerance)
     if a == b then return true end
     if type(a) ~= type(b) then return false end
-    if type(a) == "number" then return math.abs(a - b) < 0.00001 end
+    if type(a) == "number" then return math.abs(a - b) < (tolerance or 0.00001) end
     if type(a) ~= "table" then return false end
     if type(a.GetName) == "function" or type(b.GetName) == "function" then return false end
-    for key, value in pairs(a) do if not Equal(value, b[key]) then return false end end
+    for key, value in pairs(a) do if not Equal(value, b[key], tolerance) then return false end end
     for key in pairs(b) do if a[key] == nil then return false end end
     return true
+end
+local function PropertyEqual(key, a, b)
+    -- Native layout uses float rects and scale conversion. A sub-millipixel
+    -- readback difference is not a rejected write; non-layout values stay strict.
+    local tolerance = (key == "width" or key == "height" or key == "points") and 0.001 or nil
+    return Equal(a, b, tolerance)
+end
+local function WriteFailure(record, key, desired, actual)
+    if type(desired) == "number" and type(actual) == "number" then
+        return string.format("%s %s write was declined (wanted %.9f, read %.9f).", record.name, key, desired, actual)
+    end
+    return record.name .. " " .. key .. " write was declined."
 end
 local function ReadPoints(frame)
     local result = {}
@@ -90,13 +102,13 @@ local function ReleaseProperty(record, key)
     if not lease then return true end
     local ok, current = Call(lease.read, record.frame)
     if not ok then return false, tostring(current) end
-    if Equal(current, lease.original) then record.leases[key] = nil; return true end
-    if not Equal(current, lease.applied) then
+    if PropertyEqual(key, current, lease.original) then record.leases[key] = nil; return true end
+    if not PropertyEqual(key, current, lease.applied) then
         state.foreignChanges = state.foreignChanges + 1; record.leases[key] = nil; return true
     end
     local written, reason = Call(lease.write, record.frame, lease.original)
     local inspected, after = Call(lease.read, record.frame)
-    if written and reason ~= false and inspected and Equal(after, lease.original) then record.leases[key] = nil; return true end
+    if written and reason ~= false and inspected and PropertyEqual(key, after, lease.original) then record.leases[key] = nil; return true end
     return false, tostring(not written and reason or not inspected and after or record.name .. " " .. key .. " restoration was declined.")
 end
 local function Property(record, key, read, write, desired)
@@ -104,15 +116,15 @@ local function Property(record, key, read, write, desired)
     local inspected, actual = Call(read, record.frame)
     if not inspected then Fail(tostring(actual)) end
     local lease = record.leases[key]
-    if lease and not Equal(actual, lease.applied) then Fail(record.name .. " " .. key .. " has another owner.") end
+    if lease and not PropertyEqual(key, actual, lease.applied) then Fail(record.name .. " " .. key .. " has another owner.") end
     if not lease then lease = {read = read, write = write, original = actual}; record.leases[key] = lease end
-    if lease.applied ~= nil and Equal(actual, desired) then return end
+    if lease.applied ~= nil and PropertyEqual(key, actual, desired) then return end
     lease.applied = desired
     local written, reason = Call(write, record.frame, desired)
     local readOK, after = Call(read, record.frame)
     if readOK then lease.applied = after end
     if not written then Fail(tostring(reason)) end
-    if reason == false or not readOK or not Equal(after, desired) then Fail(record.name .. " " .. key .. " write was declined.") end
+    if reason == false or not readOK or not PropertyEqual(key, after, desired) then Fail(WriteFailure(record, key, desired, after)) end
 end
 local function ReleaseSlot(owner, key, original, guard, script)
     local current = script and owner:GetScript(key) or owner[key]
