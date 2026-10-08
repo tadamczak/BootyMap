@@ -9,6 +9,7 @@ local state = {active = false, editing = false, restorationBlocked = false, fore
 local records, store, surface, editor, mask, pingSlot, zoneSlot = {}, nil, nil, nil, nil, nil, nil
 local failureObserver, positionObserver, dragging, dragPoints, RefreshEditor
 local buttonPanel, buttonEvents, buttonRecords = nil, nil, {}
+local foreignButtons = {}
 local nativeMask, squareMask = "Textures\\MinimapMask", "Interface\\Buttons\\WHITE8X8"
 local fonts = {friz = "Fonts\\FRIZQT__.TTF", arial = "Fonts\\ARIALN.TTF"}
 local widgetSpecs = {
@@ -598,6 +599,7 @@ local function ReleaseButton(record)
     if parent and record.frame:GetParent() ~= parent.applied then
         -- Another collector took this button. Do not restore geometry into its
         -- new parent, even if individual widths/points happen to match ours.
+        foreignButtons[record.frame] = true
         record.leases = {}; state.foreignChanges = state.foreignChanges + 1
     end
     Script(record, "OnDragStart", nil); Script(record, "OnDragStop", nil)
@@ -651,7 +653,7 @@ local function Buttons(options)
     local includes = Map.Services.Configuration.ParseButtonNames(options.buttonIncludes)
     local list, seen = {}, {}
     local function Add(frame, explicitOnly)
-        if not seen[frame] and ButtonCandidate(frame, exceptions, includes) then
+        if not foreignButtons[frame] and not seen[frame] and ButtonCandidate(frame, exceptions, includes) then
             seen[frame] = explicitOnly and "explicit" or true; table.insert(list, frame)
         end
     end
@@ -817,6 +819,7 @@ function Native.Stop()
     for _, record in pairs(records) do Attempt(ReleaseProperty, record, "clamped") end
     state.restorationBlocked = table.getn(failures) > 0
     if state.restorationBlocked then state.failure = table.concat(failures, "; "); return false, state.failure end
+    foreignButtons = {}
     records, store, state.failure = {}, nil, nil
     return true
 end

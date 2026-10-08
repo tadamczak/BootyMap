@@ -32,6 +32,7 @@ Use it on its own with BootyLib or inside Booty Suite.
   to the opposite side when needed near a screen edge.
 - Custom shapes reject pings in their cut corners. Additional named launchers
   can include plain frames with mouse actions; continuously updated owners stay excluded.
+- Buttons moved by another addon remain with that owner until BootyMap is restarted.
 - Disabling BootyMap restores the native state captured when it was enabled.
 
 This development build awaits verification in the game client, including custom mask rendering. Further third-party integrations remain planned additions.

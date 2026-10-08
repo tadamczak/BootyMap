@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.1.0-dev.9 - 2026-10-08
+
+- Preserve foreign launcher ownership across repeated collection refreshes, including explicit additional names.
+
 ## 0.1.0-dev.8 - 2026-10-08
 
 - Prevent cut-corner clicks from sending pings outside custom map shapes.
