@@ -295,7 +295,7 @@ local function Shape(options)
         Minimap.SetMaskTexture = mask.guard
     elseif Minimap.SetMaskTexture ~= mask.guard or mask.foreign then Fail("Minimap mask has another owner.") end
     mask.enabled = true
-    local desired = options.shape ~= "circle" and squareMask or nativeMask
+    local desired = Map.Services.Geometry.Mask(options.shape)
     if mask.applied ~= desired then mask.applied = desired; Must(mask.setter, Minimap, desired) end
     Note("WoW 1.12 has no mask getter; shape reset uses the native circular mask baseline.")
 end
@@ -619,12 +619,12 @@ local nativeButtons = {MinimapZoneTextButton = true, MinimapZoomIn = true, Minim
     GameTimeFrame = true, MiniMapTrackingFrame = true, MiniMapMailFrame = true, MiniMapBattlefieldFrame = true,
     MiniMapWorldMapButton = true, MiniMapMeetingStoneFrame = true, MiniMapTracking = true,
     MiniMapVoiceChatFrame = true, MiniMapLFGFrame = true}
-local function ButtonCandidate(frame, exceptions)
-    if not frame.GetObjectType or not frame.GetName or not frame.GetScript then return false end
+local function ButtonCandidate(frame, exceptions, includes)
+    if (type(frame) ~= "table" and type(frame) ~= "userdata") or not frame.GetObjectType or not frame.GetName or not frame.GetScript then return false end
     local name, kind = frame:GetName(), frame:GetObjectType()
     if not name or nativeButtons[name] or exceptions[name] or frame.minimap or
         string.find(name, "^pfMap") or (name ~= "pfQuestIcon" and string.find(name, "^pfQuest")) or string.find(name, "^MBF") then return false end
-    if kind ~= "Button" and kind ~= "CheckButton" then return false end
+    if kind ~= "Button" and kind ~= "CheckButton" and not (kind == "Frame" and includes and includes[name]) then return false end
     -- Positional OnUpdate owners cannot be safely suspended: their callback may
     -- also drive animations or status. Keep those buttons with their addon.
     return frame:GetScript("OnUpdate") == nil and
@@ -648,15 +648,16 @@ local function Buttons(options)
     buttonEvents:RegisterEvent("ADDON_LOADED"); buttonEvents:RegisterEvent("PLAYER_ENTERING_WORLD")
     local exceptions = Map.Services.Configuration.ParseButtonNames(options.buttonExceptions)
     local ranks = Map.Services.Configuration.ParseButtonNames(options.buttonOrder)
+    local includes = Map.Services.Configuration.ParseButtonNames(options.buttonIncludes)
     local list, seen = {}, {}
-    local function Add(frame)
-        if not seen[frame] and ButtonCandidate(frame, exceptions) then
-            seen[frame] = true; table.insert(list, frame)
+    local function Add(frame, explicitOnly)
+        if not seen[frame] and ButtonCandidate(frame, exceptions, includes) then
+            seen[frame] = explicitOnly and "explicit" or true; table.insert(list, frame)
         end
     end
     for _, record in pairs(buttonRecords) do
-        if record.frame:GetParent() ~= buttonPanel or not ButtonCandidate(record.frame, exceptions) then ReleaseButton(record)
-        else Add(record.frame) end
+        if record.frame:GetParent() ~= buttonPanel or (record.explicitOnly and not includes[record.name]) or not ButtonCandidate(record.frame, exceptions, includes) then ReleaseButton(record)
+        else Add(record.frame, record.explicitOnly) end
     end
     -- Scan only the minimap and one container level. Never enumerate unrelated
     -- global frames or collect unnamed pins; discovery runs on events/refresh.
@@ -668,6 +669,7 @@ local function Buttons(options)
             end
         end
     end
+    for name in pairs(includes) do local frame = Global(name); if frame then Add(frame, true) end end
     table.sort(list, function(a, b)
         local an, bn = a:GetName(), b:GetName()
         local ar, br = ranks[an] or 9999, ranks[bn] or 9999
@@ -702,6 +704,7 @@ local function Buttons(options)
     buttonPanel:ClearAllPoints(); buttonPanel:SetPoint("CENTER", UIParent, "BOTTOMLEFT", x, y)
     for index, frame in ipairs(list) do
         local record = Record(frame:GetName(), frame); buttonRecords[record.name] = record
+        record.explicitOnly = seen[frame] == "explicit"
         Property(record, "parent", ReadParent, SetParent, buttonPanel)
         Property(record, "scale", ReadScale, SetScale, 1)
         Property(record, "width", ReadWidth, SetWidth, size)

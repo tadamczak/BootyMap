@@ -81,7 +81,10 @@ function Compatibility.Apply(value, mapWidth, mapHeight)
     options, width, height, ownedMask = value, mapWidth, mapHeight, true
     local lease = {original = Env().GetMinimapShape, enabled = true}
     lease.guard = function()
-        if lease.enabled and ownedMask then return "SQUARE" end
+        if lease.enabled and ownedMask then
+            if options.shape == "rounded" or options.shape == "octagon" then return "ROUND" end
+            return "SQUARE"
+        end
         if lease.original then return lease.original() end
         return "ROUND"
     end

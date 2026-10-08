@@ -41,6 +41,7 @@ local definitions = {
         {value = "left", text = "Left of map"}, {value = "right", text = "Right of map"}}},
     {key = "buttonOrder", label = "Button order (frame names, comma separated)", type = "text", section = "Addon buttons",
         tooltip = "Listed buttons come first; remaining buttons sort by frame name. Use /bm buttons to list collected names."},
+    {key = "buttonIncludes", label = "Additional launchers (frame names, comma separated)", type = "text", section = "Addon buttons"},
     {key = "buttonExceptions", label = "Keep on minimap (frame names, comma separated)", type = "text", section = "Addon buttons",
         tooltip = "These buttons retain their original parent, placement and drag handlers."},
     {key = "size", label = "Map size", type = "slider", min = 80, max = 400, step = 1, section = "Layout"},
@@ -49,6 +50,7 @@ local definitions = {
     {key = "snap", label = "Snap to screen edges", type = "checkbox", section = "Layout"},
     {key = "shape", label = "Map shape", type = "choice", section = "Appearance", choices = {
         {value = "circle", text = "Circle"}, {value = "square", text = "Square"},
+        {value = "rounded", text = "Rounded square"}, {value = "octagon", text = "Octagon"},
         {value = "wide", text = "Rectangle (landscape 3:2)"}, {value = "tall", text = "Rectangle (portrait 2:3)"}},
         tooltip = "Map size is the longest side. Booty or No border suits rectangular maps; native decoration remains curved. pfQuest corner discovery remains circular."},
     {key = "pfQuestClip", label = "Keep pfQuest pins inside map", type = "checkbox", section = "Compatibility",

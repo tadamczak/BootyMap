@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.1.0-dev.7 - 2026-10-08
+
+- Add rounded-square and octagonal masks with matching boundaries; explicit extra launcher names preserve callbacks and exclude continuous workers. Native rendering/input acceptance pending.
+
 ## 0.1.0-dev.6 - 2026-10-08
 
 - Add landscape3:2 and portrait2:3 minimaps with consistent edges, pings, zone text, information and panel layout.

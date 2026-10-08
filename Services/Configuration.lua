@@ -16,9 +16,10 @@ local defaults = {
     hoverNativeControls = false, hoverBorder = false, hoverIdleAlpha = 0,
     hoverFadeMs = 200, hoverDelayMs = 300,
     pfQuestClip = true,
+    buttonIncludes = "",
 }
 local options = {
-    shape = {circle = true, square = true, wide = true, tall = true}, border = {native = true, booty = true, none = true},
+    shape = {circle = true, square = true, wide = true, tall = true, rounded = true, octagon = true}, border = {native = true, booty = true, none = true},
     zonePosition = {top = true, bottom = true}, zoneFont = {native = true, friz = true, arial = true},
     buttonSide = {top = true, bottom = true, left = true, right = true},
     clockSource = {localTime = true, server = true}, clockFormat = {["12"] = true, ["24"] = true},
@@ -64,7 +65,7 @@ function Configuration.ValidateValue(key, value)
     elseif key == "buttonSize" then valid = Integer(value, 16, 48)
     elseif key == "buttonSpacing" then valid = Integer(value, 0, 16)
     elseif key == "buttonColumns" then valid = Integer(value, 1, 12)
-    elseif key == "buttonOrder" or key == "buttonExceptions" then valid = Configuration.ParseButtonNames(value) ~= nil
+    elseif key == "buttonOrder" or key == "buttonExceptions" or key == "buttonIncludes" then valid = Configuration.ParseButtonNames(value) ~= nil
     elseif key == "zoom" then valid = Integer(value, -1, 5)
     elseif key == "alpha" or key == "hoverIdleAlpha" then valid = Finite(value) and value >= 0 and value <= 1
     elseif key == "hoverFadeMs" or key == "hoverDelayMs" then valid = Integer(value, 0, 1000)

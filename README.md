@@ -16,7 +16,7 @@ Use it on its own with BootyLib or inside Booty Suite.
 ## Features
 
 - Map size from 80 to 400, saved placement, position locking and edge snapping.
-- Circle, square, landscape3:2 or portrait2:3 shape; native, Booty or no border.
+- Circle, square, rounded square, octagon, landscape3:2 or portrait2:3 shape; native, Booty or no border.
 - Map opacity and configurable zone-name visibility, position, font and color.
 - Optional mouse-wheel zoom and preferred zoom level.
 - Visibility and corner placement for native zoom, clock, tracking, mail and
@@ -28,12 +28,11 @@ Use it on its own with BootyLib or inside Booty Suite.
 - Independent hover visibility and fading for zone text, information, addon
   buttons, native controls and borders; configurable idle opacity and timing.
 - Optional addon-button panel: size, spacing, columns, side, custom order and
-  exceptions that keep selected buttons on the minimap. Panel placement flips
+  exceptions that keep selected buttons on the minimap, plus additional launcher names. Panel placement flips
   to the opposite side when needed near a screen edge.
 - Disabling BootyMap restores the native state captured when it was enabled.
 
-This development build awaits verification in the game client. An
-Rounded masks and further third-party integrations remain planned additions.
+This development build awaits verification in the game client, including custom mask rendering. Further third-party integrations remain planned additions.
 
 ## Installation
 
