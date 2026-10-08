@@ -44,6 +44,11 @@ local function Equal(a, b, tolerance)
     return true
 end
 local function PropertyEqual(key, a, b)
+    -- Native alpha is stored in an eight-bit channel: GetAlpha can return
+    -- floor(requested * 255) / 255. Compare visual buckets, not wide epsilon.
+    if key == "alpha" and Finite(a) and Finite(b) and a >= 0 and a <= 1 and b >= 0 and b <= 1 then
+        return math.floor(a * 255 + 0.00001) == math.floor(b * 255 + 0.00001)
+    end
     -- Native layout uses float rects and scale conversion. A sub-millipixel
     -- readback difference is not a rejected write; non-layout values stay strict.
     local tolerance = (key == "width" or key == "height" or key == "points") and 0.001 or nil

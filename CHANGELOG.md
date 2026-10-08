@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.1.0-dev.11 - 2026-10-08
+
+- Accept native eight-bit alpha readback during hover fades while retaining refused-write and foreign-owner checks.
+
 ## 0.1.0-dev.10 - 2026-10-08
 
 - Geometry, shape reporting and pfQuest clipping yield after another addon replaces the native mask setter.
