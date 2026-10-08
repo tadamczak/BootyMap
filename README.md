@@ -1,0 +1,76 @@
+<p align="center"><img src="https://raw.githubusercontent.com/tadamczak/MuklaOfficerSuite/master/Assets/readme-header.png" width="100%" alt="Sons of Mukla"></p>
+
+# BootyMap
+
+BootyMap customizes the native World of Warcraft 1.12 minimap. Move and resize
+the map, choose its shape and appearance, and arrange its native indicators.
+Use it on its own with BootyLib or inside Booty Suite.
+
+## Contents
+
+- [Features](#features)
+- [Installation](#installation)
+- [Usage](#usage)
+- [Compatibility](#compatibility)
+
+## Features
+
+- Map size from 80 to 400, saved placement, position locking and edge snapping.
+- Circle or square shape, native border, Booty project border or no border.
+- Map opacity and configurable zone-name visibility, position, font and color.
+- Optional mouse-wheel zoom and preferred zoom level.
+- Visibility and corner placement for native zoom, clock, tracking, mail and
+  battleground controls, when those controls are available in the client.
+- Classic, Booty and Compact presets, layout rescue and full preference reset.
+- Shared settings profiles that include the map's saved placement.
+- Disabling BootyMap restores the native state captured when it was enabled.
+
+This first development build awaits verification in the game client. An
+addon-button panel, coordinates, additional clock display and hover visibility
+are planned additions.
+
+## Installation
+
+Place `BootyLib` and `BootyMap` directly inside `Interface/AddOns`. The folders
+must have those exact names. Enable both in the character-selection addon list.
+Booty Suite is optional. Restart the client after the first installation so the
+new addon appears in the character-selection list.
+
+## Usage
+
+Use `/bm` or `/bootymap` to open Map and `/bm settings` to open settings.
+Changes apply immediately. Use the shared Profile page to save or restore your
+map settings and position; the same preferences are available in Booty Suite.
+
+Use `/bm edit` to toggle temporary drag editing. Finish editing or use `/bm lock`
+to lock the map. The permanent Lock position setting also allows ordinary
+dragging when unlocked. Edge snapping applies when a drag finishes.
+
+Use `/bm reset` or **Reset layout** if the minimap is outside the screen or
+transparent. This ends editing and restores native placement, size 140, full
+opacity, position locking and disabled edge snapping. Other appearance settings
+stay as chosen. **Reset all** restores all minimap preferences. Both resets keep
+your saved profiles.
+
+Use `/bm disable` to restore the captured native layout and `/bm enable` to
+apply BootyMap again. Disable also ends editing. Reset commands remain available
+when BootyMap customizations are disabled; corrected preferences apply when you
+enable them again.
+
+## Compatibility
+
+Choose one owner for minimap customization. Disable ShaguTweaks MiniMap Tweaks,
+MiniMap Clock and MiniMap Square when using the corresponding BootyMap features,
+then reload the UI. Other addons can change the same minimap controls, fonts,
+mask or mouse handlers. BootyMap reports detected conflicts; it cannot guarantee
+compatibility with every minimap replacement.
+
+Existing addon buttons and MinimapButtonFrame stay with their current owners.
+BootyMap's first version does not collect or rearrange addon buttons. Native mail,
+tracking and battleground actions keep their existing click behavior and
+tooltips; choosing visibility does not invent a status the client has not shown.
+
+The square option changes the minimap shape. pfQuest may still keep quest markers
+inside the native circle; support for quest markers in square corners is not
+included in this first build. Map clicks, pings, client extensions and the
+combination with pfQuest require verification in the game client.

@@ -1,0 +1,16 @@
+## Interface: 11200
+## Title: BootyMap
+## Notes: Native minimap layout and appearance. Standalone or integrated into Booty Suite.
+## Author: Mukla
+## Version: 0.1.0-dev.1
+## Dependencies: BootyLib
+## SavedVariables: BootyMapDB
+
+Core\Bootstrap.lua
+Services\Configuration.lua
+Core\Database.lua
+Modules\NativeMinimap.lua
+Modules\Overview.lua
+Core\Runtime.lua
+Core\SettingsSchema.lua
+BootyMap.lua
