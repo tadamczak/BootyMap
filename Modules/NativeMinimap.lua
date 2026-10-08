@@ -886,8 +886,11 @@ function Native.Start(value)
     return ok, reason
 end
 function Native.GetState() return state end
+function Native.OwnsGeometry()
+    return state.active and store ~= nil and not (mask and (mask.foreign or Minimap.SetMaskTexture ~= mask.guard))
+end
 function Native.GetGeometry()
-    if not state.active or not store or (mask and (mask.foreign or Minimap.SetMaskTexture ~= mask.guard)) then return nil, "BootyMap does not own the active minimap geometry." end
+    if not Native.OwnsGeometry() then return nil, "BootyMap does not own the active minimap geometry." end
     return store.preferences.shape, Minimap:GetWidth(), Minimap:GetHeight()
 end
 function Native.ContainsPoint(x, y, inset)
