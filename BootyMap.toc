@@ -2,16 +2,18 @@
 ## Title: BootyMap
 ## Notes: Native minimap layout and appearance. Standalone or integrated into Booty Suite.
 ## Author: Mukla
-## Version: 0.1.0-dev.5
+## Version: 0.1.0-dev.6
 ## Dependencies: BootyLib
 ## SavedVariables: BootyMapDB
 
 Core\Bootstrap.lua
 Services\Configuration.lua
 Services\Information.lua
+Services\Geometry.lua
 Core\Database.lua
 Modules\Information.lua
 Modules\Hover.lua
+Modules\Compatibility.lua
 Modules\NativeMinimap.lua
 Modules\Overview.lua
 Core\Runtime.lua

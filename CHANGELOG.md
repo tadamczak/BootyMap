@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.1.0-dev.6 - 2026-10-08
+
+- Add landscape3:2 and portrait2:3 minimaps with consistent edges, pings, zone text, information and panel layout.
+- Add reversible GetMinimapShape compatibility and explicit viewport geometry/containment APIs.
+- Add optional pfQuest viewport clipping without replacing its renderer; unchanged render caches skip pin loops.
+- Allow the known pfQuest launcher in the icon panel while preserving quest pins and foreign owners.
+- Full pfQuest corner discovery and native rendering/input/performance acceptance remain pending.
+
 ## 0.1.0-dev.5 - 2026-10-08
 
 - Add independent hover visibility for zone, information, addon panel, native controls and borders.

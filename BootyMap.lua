@@ -1,5 +1,7 @@
 local Map = BootyMap
 local Runtime = Map.Core.Runtime
+Map.GetMinimapGeometry = Map.Modules.NativeMinimap.GetGeometry
+Map.ContainsMinimapPoint = Map.Modules.NativeMinimap.ContainsPoint
 Map.Product = {
     id = "map", name = "BootyMap", title = "BootyMap", settingsLabel = "Map",
     version = Map.version, apiVersion = Map.API_VERSION, namespace = Map,

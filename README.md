@@ -16,7 +16,7 @@ Use it on its own with BootyLib or inside Booty Suite.
 ## Features
 
 - Map size from 80 to 400, saved placement, position locking and edge snapping.
-- Circle or square shape, native border, Booty project border or no border.
+- Circle, square, landscape3:2 or portrait2:3 shape; native, Booty or no border.
 - Map opacity and configurable zone-name visibility, position, font and color.
 - Optional mouse-wheel zoom and preferred zoom level.
 - Visibility and corner placement for native zoom, clock, tracking, mail and
@@ -33,7 +33,7 @@ Use it on its own with BootyLib or inside Booty Suite.
 - Disabling BootyMap restores the native state captured when it was enabled.
 
 This development build awaits verification in the game client. An
-Further compatible shapes and third-party integrations remain planned additions.
+Rounded masks and further third-party integrations remain planned additions.
 
 ## Installation
 
@@ -85,6 +85,11 @@ at its configured opacity. Fully invisible information pauses its updates;
 partially visible information remains current. Hover is off by default and its
 settings are included in profiles.
 
+In **Map > Appearance**, choose a shape. For rectangles, Map size is the longest
+side. Choose Booty or No border for straight sides; native decoration stays
+curved. Positioning, edge snapping and information follow the actual rectangle.
+Compatible icon addons receive the standard rectangular shape information.
+
 ## Compatibility
 
 Choose one owner for minimap customization. Disable ShaguTweaks MiniMap Tweaks,
@@ -101,7 +106,13 @@ Native mail,
 tracking and battleground actions keep their existing click behavior and
 tooltips; choosing visibility does not invent a status the client has not shown.
 
-The square option changes the minimap shape. pfQuest may still keep quest markers
-inside the native circle; support for quest markers in square corners is not
-included in this first build. Map clicks, pings, client extensions and the
-combination with pfQuest require verification in the game client.
+Square and rectangular maps reuse the full minimap mask. Rendering, map clicks,
+pings, client extensions and pfQuest coexistence require verification in the game client.
+
+**Map > Compatibility > Keep pfQuest pins inside map** clips existing pins to
+non-circular viewports after pfQuest renders them. It preserves pfQuest's node
+selection and visibility rules; it cannot add pins that its circular discovery
+already filtered out. Unsupported or replaced renderers pause clipping with a
+status message. The optional icon panel supports the known `pfQuestIcon` launcher
+while keeping quest pins with pfQuest. pfQuest files and the pfUI namespace stay
+unchanged.

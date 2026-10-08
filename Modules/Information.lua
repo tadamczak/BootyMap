@@ -72,8 +72,9 @@ local function Layout(label, row, visible, position, offset)
     label:SetFont(fonts[options.informationFont], options.informationFontSize, "")
     local color = options.informationColor
     label:SetTextColor(color[1], color[2], color[3], 1)
-    label:SetWidth(math.max(options.size, 120)); label:SetHeight(options.informationFontSize + 4)
-    row:SetWidth(math.max(options.size, 120)); row:SetHeight(options.informationFontSize + 4)
+    local mapWidth = Map.Services.Geometry.Dimensions(options)
+    label:SetWidth(math.max(mapWidth, 120)); label:SetHeight(options.informationFontSize + 4)
+    row:SetWidth(math.max(mapWidth, 120)); row:SetHeight(options.informationFontSize + 4)
     label:ClearAllPoints()
     row:ClearAllPoints()
     if position == "top" then
@@ -86,7 +87,7 @@ end
 local function ResolveSide(side)
     local _, y = Minimap:GetCenter()
     local ratio = Minimap:GetEffectiveScale() / UIParent:GetEffectiveScale()
-    local half = options.size * ratio / 2
+    local half = Minimap:GetHeight() * ratio / 2
     local required = (options.zoneFontSize + 12 + 2 * (options.informationFontSize + 6)) * ratio
     if side == "bottom" and y * ratio - half < required then return "top" end
     if side == "top" and UIParent:GetHeight() - y * ratio - half < required then return "bottom" end

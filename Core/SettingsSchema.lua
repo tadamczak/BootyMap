@@ -48,8 +48,11 @@ local definitions = {
         tooltip = "Unlock to allow dragging. Edit mode temporarily enables dragging without changing this preference."},
     {key = "snap", label = "Snap to screen edges", type = "checkbox", section = "Layout"},
     {key = "shape", label = "Map shape", type = "choice", section = "Appearance", choices = {
-        {value = "circle", text = "Circle"}, {value = "square", text = "Square"}},
-        tooltip = "Square changes the minimap mask. pfQuest may still limit its quest markers to the native circle; its square corners require a separate integration."},
+        {value = "circle", text = "Circle"}, {value = "square", text = "Square"},
+        {value = "wide", text = "Rectangle (landscape 3:2)"}, {value = "tall", text = "Rectangle (portrait 2:3)"}},
+        tooltip = "Map size is the longest side. Booty or No border suits rectangular maps; native decoration remains curved. pfQuest corner discovery remains circular."},
+    {key = "pfQuestClip", label = "Keep pfQuest pins inside map", type = "checkbox", section = "Compatibility",
+        tooltip = "For non-circular maps, clips the installed pfQuest renderer's existing pins to the viewport. Keeps its data, tooltips and visibility rules; does not add pins in previously filtered corners."},
     {key = "border", label = "Map border", type = "choice", section = "Appearance", choices = {
         {value = "native", text = "Native border"}, {value = "booty", text = "Booty project border"}, {value = "none", text = "No border"}}},
     {key = "alpha", label = "Map opacity (%)", type = "slider", min = 0, max = 100, step = 5, section = "Appearance",

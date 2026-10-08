@@ -284,6 +284,7 @@ local function Shape(options)
         mask.guard = function(owner, texturePath)
             if owner == Minimap then
                 owned.foreign = true
+                Map.Modules.Compatibility.SetMaskOwned(false)
                 if owned.enabled then
                     if pingSlot then pingSlot.enabled = false end
                     Note("Another addon changed the minimap mask; BootyMap will preserve it.")
@@ -294,17 +295,20 @@ local function Shape(options)
         Minimap.SetMaskTexture = mask.guard
     elseif Minimap.SetMaskTexture ~= mask.guard or mask.foreign then Fail("Minimap mask has another owner.") end
     mask.enabled = true
-    local desired = options.shape == "square" and squareMask or nativeMask
+    local desired = options.shape ~= "circle" and squareMask or nativeMask
     if mask.applied ~= desired then mask.applied = desired; Must(mask.setter, Minimap, desired) end
     Note("WoW 1.12 has no mask getter; shape reset uses the native circular mask baseline.")
 end
 local function Ping(lease, ...)
     local x, y, sound = arg[1], arg[2], arg[3]
-    if not state.active or not lease.enabled or not store or store.preferences.shape ~= "square" then
+    if not state.active or not lease.enabled or not store or store.preferences.shape == "circle" then
         return lease.original(unpack(arg))
     end
     if not Finite(x) or not Finite(y) then return lease.original(unpack(arg)) end
     local dx, dy = x * Minimap:GetWidth(), y * Minimap:GetHeight()
+    if not Map.Services.Geometry.Contains(store.preferences.shape, Minimap:GetWidth(), Minimap:GetHeight(), dx, dy) then
+        MiniMapPing:Hide(); return
+    end
     if dx * dx + dy * dy < Minimap:GetWidth() * Minimap:GetWidth() / 4 then return lease.original(unpack(arg)) end
     -- Native event/update retain the ping timer, fade and all interior behavior.
     if math.abs(dx) <= Minimap:GetWidth() / 2 and math.abs(dy) <= Minimap:GetHeight() / 2 then
@@ -315,7 +319,7 @@ local function Ping(lease, ...)
 end
 local function MouseUp(original)
     if original then Must(original) end
-    if not state.active or not store or store.preferences.shape ~= "square" or not pingSlot or not pingSlot.enabled then return end
+    if not state.active or not store or store.preferences.shape == "circle" or not pingSlot or not pingSlot.enabled then return end
     if arg1 ~= nil and arg1 ~= "LeftButton" then return end
     local x, y = GetCursorPosition()
     local scale = Minimap:GetEffectiveScale()
@@ -343,7 +347,7 @@ end
 local function OnWheel(original) Callback(Wheel, original) end
 local function PingCallbacks(options)
     local record = records.Minimap
-    if options.shape == "square" then
+    if options.shape ~= "circle" then
         if type(Global("Minimap_SetPing")) ~= "function" or not Global("MiniMapPing") then Fail("Native minimap ping callbacks are unavailable.") end
         if not pingSlot then
             pingSlot = {original = Global("Minimap_SetPing"), enabled = true}
@@ -381,9 +385,10 @@ local function ZoneUpdate(owned)
 end
 local function Zone(options)
     local button, text = Record("MinimapZoneTextButton"), Record("MinimapZoneText")
+    local zoneWidth = Map.Services.Geometry.Dimensions(options) + 16
     if button then
         Hidden(button, not options.zoneVisible)
-        Property(button, "width", ReadWidth, SetWidth, options.size + 16)
+        Property(button, "width", ReadWidth, SetWidth, zoneWidth)
         Property(button, "height", ReadHeight, SetHeight, math.max(20, options.zoneFontSize + 8))
         local top = options.zonePosition == "top"
         Property(button, "points", ReadPoints, SetPoints, {{top and "BOTTOM" or "TOP", Minimap, top and "TOP" or "BOTTOM", 0, top and 5 or -5}})
@@ -393,7 +398,7 @@ local function Zone(options)
     Property(text, "font", ReadFont, SetFont, {fonts[options.zoneFont] or native[1], options.zoneFontSize, native[3]})
     -- Stock XML fixes the label at 128x12 independently of its clickable owner.
     -- Resize both rectangles so the configured font fits the bounded zone row.
-    Property(text, "width", ReadWidth, SetWidth, options.size + 16)
+    Property(text, "width", ReadWidth, SetWidth, zoneWidth)
     Property(text, "height", ReadHeight, SetHeight, math.max(20, options.zoneFontSize + 8))
     if not options.zonePvpColor then
         if type(Global("Minimap_Update")) ~= "function" then Fail("Native zone updater is unavailable.") end
@@ -420,7 +425,7 @@ local function Zone(options)
         Property(text, "color", ReadColor, SetColor, nil)
     end
 end
-local function NativeBorder(record, ratio)
+local function NativeBorder(record, ratio, heightRatio)
     if not record.borderGeometry then
         local cx, cy = record.frame:GetCenter()
         local mx, my = Minimap:GetCenter()
@@ -428,8 +433,8 @@ local function NativeBorder(record, ratio)
     end
     local g = record.borderGeometry
     Property(record, "width", ReadWidth, SetWidth, g[1] * ratio)
-    Property(record, "height", ReadHeight, SetHeight, g[2] * ratio)
-    Property(record, "points", ReadPoints, SetPoints, {{"CENTER", Minimap, "CENTER", g[3] * ratio, g[4] * ratio}})
+    Property(record, "height", ReadHeight, SetHeight, g[2] * (heightRatio or ratio))
+    Property(record, "points", ReadPoints, SetPoints, {{"CENTER", Minimap, "CENTER", g[3] * ratio, g[4] * (heightRatio or ratio)}})
 end
 local function Border(options)
     local native, top = Record("MinimapBorder"), Record("MinimapBorderTop")
@@ -480,12 +485,14 @@ local function MapCenter()
     return x * ratio, y * ratio
 end
 local function ClampPosition(x, y, options)
-    local half = options.size * Minimap:GetEffectiveScale() / UIParent:GetEffectiveScale() / 2
+    local widthMap, heightMap = Map.Services.Geometry.Dimensions(options)
+    local ratio = Minimap:GetEffectiveScale() / UIParent:GetEffectiveScale() / 2
+    local half, halfY = widthMap * ratio, heightMap * ratio
     local width, height = UIParent:GetWidth(), UIParent:GetHeight()
-    x, y = math.max(half, math.min(width - half, x)), math.max(half, math.min(height - half, y))
+    x, y = math.max(half, math.min(width - half, x)), math.max(halfY, math.min(height - halfY, y))
     if options.snap then
         if x - half < 12 then x = half elseif width - x - half < 12 then x = width - half end
-        if y - half < 12 then y = half elseif height - y - half < 12 then y = height - half end
+        if y - halfY < 12 then y = halfY elseif height - y - halfY < 12 then y = height - halfY end
     end
     return x, y
 end
@@ -616,7 +623,7 @@ local function ButtonCandidate(frame, exceptions)
     if not frame.GetObjectType or not frame.GetName or not frame.GetScript then return false end
     local name, kind = frame:GetName(), frame:GetObjectType()
     if not name or nativeButtons[name] or exceptions[name] or frame.minimap or
-        string.find(name, "^pfMap") or string.find(name, "^pfQuest") or string.find(name, "^MBF") then return false end
+        string.find(name, "^pfMap") or (name ~= "pfQuestIcon" and string.find(name, "^pfQuest")) or string.find(name, "^MBF") then return false end
     if kind ~= "Button" and kind ~= "CheckButton" then return false end
     -- Positional OnUpdate owners cannot be safely suspended: their callback may
     -- also drive animations or status. Keep those buttons with their addon.
@@ -676,17 +683,18 @@ local function Buttons(options)
     buttonPanel:SetHeight(12 + rows * size + (rows - 1) * gap)
     local ratio = Minimap:GetEffectiveScale() / UIParent:GetEffectiveScale()
     local x, y = MapCenter()
-    local half, pw, ph = options.size * ratio / 2, buttonPanel:GetWidth(), buttonPanel:GetHeight()
+    local half, halfY = Minimap:GetWidth() * ratio / 2, Minimap:GetHeight() * ratio / 2
+    local pw, ph = buttonPanel:GetWidth(), buttonPanel:GetHeight()
     local side, screenW, screenH = options.buttonSide, UIParent:GetWidth(), UIParent:GetHeight()
     local panelGap = Map.Modules.Information.GetPanelGap
     -- When the map touches a screen edge, prefer the opposite side over
     -- clamping a panel on top of the map. Persist the user's requested side.
-    if side == "top" and y + half + panelGap(side) + ph > screenH then side = "bottom"
-    elseif side == "bottom" and y - half - panelGap(side) - ph < 0 then side = "top"
+    if side == "top" and y + halfY + panelGap(side) + ph > screenH then side = "bottom"
+    elseif side == "bottom" and y - halfY - panelGap(side) - ph < 0 then side = "top"
     elseif side == "left" and x - half - 8 - pw < 0 then side = "right"
     elseif side == "right" and x + half + 8 + pw > screenW then side = "left" end
-    if side == "top" then y = y + half + panelGap(side) + ph / 2
-    elseif side == "bottom" then y = y - half - panelGap(side) - ph / 2
+    if side == "top" then y = y + halfY + panelGap(side) + ph / 2
+    elseif side == "bottom" then y = y - halfY - panelGap(side) - ph / 2
     elseif side == "left" then x = x - half - 8 - pw / 2
     else x = x + half + 8 + pw / 2 end
     x = math.max(pw / 2, math.min(UIParent:GetWidth() - pw / 2, x))
@@ -777,6 +785,7 @@ function Native.Stop()
         if not ran or ok == false then table.insert(failures, tostring(ran and reason or ok)) end
     end
     Attempt(CancelDrag)
+    Attempt(Map.Modules.Compatibility.Stop)
     Attempt(Map.Modules.Hover.Stop)
     Attempt(Map.Modules.Information.Stop)
     Attempt(StopButtons)
@@ -823,12 +832,13 @@ local function ApplyAll()
     Property(cluster, "clamped", ReadClamp, SetClamp, false)
     Property(map, "clamped", ReadClamp, SetClamp, false)
     local originalSize = map.leases.width and map.leases.width.original or Minimap:GetWidth()
+    local mapWidth, mapHeight = Map.Services.Geometry.Dimensions(options)
     -- Capture texture geometry before changing the map that owns its anchors.
     local border = Record("MinimapBorder")
-    if border then NativeBorder(border, options.size / originalSize) end
+    if border then NativeBorder(border, mapWidth / originalSize, mapHeight / (map.leases.height and map.leases.height.original or Minimap:GetHeight())) end
     Shape(options); PingCallbacks(options)
-    Property(map, "width", ReadWidth, SetWidth, options.size)
-    Property(map, "height", ReadHeight, SetHeight, options.size)
+    Property(map, "width", ReadWidth, SetWidth, mapWidth)
+    Property(map, "height", ReadHeight, SetHeight, mapHeight)
     Property(map, "alpha", ReadAlpha, SetAlpha, options.alpha)
     Property(map, "zoom", ReadZoom, SetZoom, options.zoom >= 0 and math.min(options.zoom, Minimap:GetZoomLevels() - 1) or nil)
     if Finite(options.x) and Finite(options.y) then Position(options.x, options.y, options)
@@ -836,8 +846,9 @@ local function ApplyAll()
     Border(options); Zone(options); Widgets(options)
     Map.Modules.Information.Apply(options)
     Buttons(options)
-    if options.shape == "square" and (Global("pfQuest") or Global("pfDB")) then
-        Note("pfQuest corner clipping may remain circular; BootyMap does not modify pfQuest or pfUI globals.")
+    Map.Modules.Compatibility.Apply(options, mapWidth, mapHeight)
+    if options.shape ~= "circle" and (Global("pfQuest") or Global("pfDB")) then
+        Note("pfQuest corner discovery remains circular; viewport clipping is optional. Its files and the pfUI namespace stay unchanged.")
     end
     RefreshEditor()
     Map.Modules.Hover.Refresh()
@@ -864,6 +875,15 @@ function Native.Start(value)
     return ok, reason
 end
 function Native.GetState() return state end
+function Native.GetGeometry()
+    if not state.active or not store or (mask and mask.foreign) then return nil, "BootyMap does not own the active minimap geometry." end
+    return store.preferences.shape, Minimap:GetWidth(), Minimap:GetHeight()
+end
+function Native.ContainsPoint(x, y, inset)
+    local shape, width, height = Native.GetGeometry()
+    if not shape then return false end
+    return Map.Services.Geometry.Contains(shape, width, height, x, y, inset)
+end
 function Native.ReportInformationFailure(reason) return Notify(reason) end
 function Native.SetFailureObserver(callback) failureObserver = type(callback) == "function" and callback or nil end
 function Native.SetPositionObserver(callback) positionObserver = type(callback) == "function" and callback or nil end

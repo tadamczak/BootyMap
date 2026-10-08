@@ -15,9 +15,10 @@ local defaults = {
     hoverZone = false, hoverInformation = false, hoverButtons = false,
     hoverNativeControls = false, hoverBorder = false, hoverIdleAlpha = 0,
     hoverFadeMs = 200, hoverDelayMs = 300,
+    pfQuestClip = true,
 }
 local options = {
-    shape = {circle = true, square = true}, border = {native = true, booty = true, none = true},
+    shape = {circle = true, square = true, wide = true, tall = true}, border = {native = true, booty = true, none = true},
     zonePosition = {top = true, bottom = true}, zoneFont = {native = true, friz = true, arial = true},
     buttonSide = {top = true, bottom = true, left = true, right = true},
     clockSource = {localTime = true, server = true}, clockFormat = {["12"] = true, ["24"] = true},
