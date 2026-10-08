@@ -6,6 +6,16 @@ local positions = {{value = "native", text = "Native position"}, {value = "TOPLE
     {value = "TOPRIGHT", text = "Top right"}, {value = "BOTTOMLEFT", text = "Bottom left"},
     {value = "BOTTOMRIGHT", text = "Bottom right"}}
 local definitions = {
+    {key = "hoverZone", label = "Zone name on hover", type = "checkbox", section = "Hover"},
+    {key = "hoverInformation", label = "Clock and coordinates on hover", type = "checkbox", section = "Hover"},
+    {key = "hoverButtons", label = "Addon-button panel on hover", type = "checkbox", section = "Hover"},
+    {key = "hoverNativeControls", label = "Native controls on hover", type = "checkbox", section = "Hover",
+        tooltip = "Keeps native status, clicks and tooltips; permanent Hide settings still apply."},
+    {key = "hoverBorder", label = "Border on hover", type = "checkbox", section = "Hover"},
+    {key = "hoverIdleAlpha", label = "Opacity without cursor (%)", type = "slider", min = 0, max = 100, step = 5, section = "Hover"},
+    {key = "hoverFadeMs", label = "Fade duration (ms)", type = "slider", min = 0, max = 1000, step = 50, section = "Hover"},
+    {key = "hoverDelayMs", label = "Hide delay (ms)", type = "slider", min = 0, max = 1000, step = 50, section = "Hover",
+        tooltip = "Allows moving from the map to its buttons or information. Edit mode keeps selected elements visible."},
     {key = "clockVisible", label = "Show digital clock", type = "checkbox", section = "Information"},
     {key = "clockSource", label = "Clock time", type = "choice", section = "Information", choices = {
         {value = "localTime", text = "Local time"}, {value = "server", text = "Server time"}}},
@@ -62,11 +72,11 @@ local function Required(ok, failure) Assert(ok, failure) end
 local function Add(definition)
     local key, field = definition.key, Configuration.Copy(definition)
     field.durableKey, field.default = "preferences", Configuration.GetDefault(key)
-    if key == "alpha" then field.default = field.default * 100 end
+    if key == "alpha" or key == "hoverIdleAlpha" then field.default = field.default * 100 end
     field.path = {"Map", definition.section or "Layout"}
     field.get = function(store)
         local value = store.preferences[key]
-        if key == "alpha" and value ~= nil then return value * 100 end
+        if (key == "alpha" or key == "hoverIdleAlpha") and value ~= nil then return value * 100 end
         return value
     end
     field.set = function(value)
@@ -80,7 +90,7 @@ local function Add(definition)
         end
         -- Shared sliders round to whole numbers. Display opacity as percent
         -- while the native adapter and durable preferences use the 0-1 range.
-        if key == "alpha" and value ~= nil then
+        if (key == "alpha" or key == "hoverIdleAlpha") and value ~= nil then
             Assert(type(value) == "number", "Choose a numeric minimap opacity.")
             value = value / 100
         end

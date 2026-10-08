@@ -12,6 +12,9 @@ local defaults = {
     clockVisible = false, clockSource = "localTime", clockFormat = "24", clockPositionText = "bottom",
     coordsVisible = false, coordsPositionText = "bottom", informationFont = "friz",
     informationFontSize = 12, informationColor = {1, 0.82, 0},
+    hoverZone = false, hoverInformation = false, hoverButtons = false,
+    hoverNativeControls = false, hoverBorder = false, hoverIdleAlpha = 0,
+    hoverFadeMs = 200, hoverDelayMs = 300,
 }
 local options = {
     shape = {circle = true, square = true}, border = {native = true, booty = true, none = true},
@@ -62,7 +65,8 @@ function Configuration.ValidateValue(key, value)
     elseif key == "buttonColumns" then valid = Integer(value, 1, 12)
     elseif key == "buttonOrder" or key == "buttonExceptions" then valid = Configuration.ParseButtonNames(value) ~= nil
     elseif key == "zoom" then valid = Integer(value, -1, 5)
-    elseif key == "alpha" then valid = Finite(value) and value >= 0 and value <= 1
+    elseif key == "alpha" or key == "hoverIdleAlpha" then valid = Finite(value) and value >= 0 and value <= 1
+    elseif key == "hoverFadeMs" or key == "hoverDelayMs" then valid = Integer(value, 0, 1000)
     elseif options[key] then valid = type(value) == "string" and options[key][value]
     elseif positions[key] or string.find(key, "Position$") then valid = type(value) == "string" and positions[value]
     elseif key == "zoneColor" or key == "informationColor" then

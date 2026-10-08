@@ -25,13 +25,15 @@ Use it on its own with BootyLib or inside Booty Suite.
 - Shared settings profiles that include the map's saved placement.
 - Digital local/server clock with 12/24-hour format and player coordinates.
 - Information font, size, color and above/below placement, with edge adjustment.
+- Independent hover visibility and fading for zone text, information, addon
+  buttons, native controls and borders; configurable idle opacity and timing.
 - Optional addon-button panel: size, spacing, columns, side, custom order and
   exceptions that keep selected buttons on the minimap. Panel placement flips
   to the opposite side when needed near a screen edge.
 - Disabling BootyMap restores the native state captured when it was enabled.
 
 This development build awaits verification in the game client. An
-hover visibility and further compatible shapes are planned additions.
+Further compatible shapes and third-party integrations remain planned additions.
 
 ## Installation
 
@@ -74,6 +76,14 @@ refresh up to four times per second; while the world map is open or position is
 unavailable they show `--, --`, preserving the zone you are browsing. Close the
 world map to resume coordinates. Both displays default off and use no update
 handler when disabled or hidden. Information settings are included in profiles.
+
+In **Map > Hover**, choose which elements appear when the cursor enters the map
+or its controls. Set idle opacity, hide delay and fade duration. The delay lets
+you move between the map, panel and information rows. Edit always shows selected
+elements. Permanent Hide settings still apply, and the map itself stays visible
+at its configured opacity. Fully invisible information pauses its updates;
+partially visible information remains current. Hover is off by default and its
+settings are included in profiles.
 
 ## Compatibility
 

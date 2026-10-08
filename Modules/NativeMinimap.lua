@@ -516,6 +516,7 @@ local function DragStart()
     Property(record, "points", ReadPoints, SetPoints, ReadPoints(record.frame))
     dragPoints = ReadPoints(record.frame); dragging = true
     Must(record.frame.StartMoving, record.frame)
+    Map.Modules.Hover.Enter()
 end
 local function DragStop()
     if not dragging then return end
@@ -528,6 +529,7 @@ local function DragStop()
     if positionObserver then Must(positionObserver, x, y) end
     Map.Modules.Information.Apply(store.preferences)
     if store.preferences.collectButtons then Must(Native.RefreshButtons) end
+    if not store.preferences.collectButtons then Must(Native.RefreshHover) end
 end
 local function Editor()
     if editor then return end
@@ -552,6 +554,7 @@ function Native.SetEditing(value)
         if value then Editor() end
         state.editing = value == true
         RefreshEditor()
+        if state.active then Must(Native.RefreshHover) end
     end)
     if not ok then return Notify(reason) end
     return true
@@ -709,6 +712,58 @@ function Native.RefreshButtons()
     if not state.active or not store then return false, "Enable BootyMap before refreshing buttons." end
     local ok, reason = Call(Buttons, store.preferences)
     if not ok then return Notify(reason) end
+    return Native.RefreshHover()
+end
+local function HoverEnter(original)
+    Callback(Map.Modules.Hover.Enter)
+    if original then Callback(original) end
+end
+local function HoverLeave(original)
+    Callback(Map.Modules.Hover.Leave)
+    if original then Callback(original) end
+end
+local function HoverApply()
+    local options = store.preferences
+    local roots, targets, seen = {}, {}, {}
+    local function Root(record)
+        if record and not seen[record] then seen[record] = true; table.insert(roots, record) end
+    end
+    local function Target(record)
+        if record then table.insert(targets, {record = record, base = record.frame:GetAlpha()}) end
+    end
+    -- Release the old leases before sampling baseline opacity for the next set.
+    Map.Modules.Hover.Stop()
+    Root(records.Minimap); Root(records.MinimapZoneTextButton)
+    if options.hoverZone and options.zoneVisible then Target(records.MinimapZoneTextButton) end
+    for _, spec in ipairs(widgetSpecs) do
+        local record = records[spec[1]]
+        if record and not options[spec[2]] then
+            Root(record)
+            if options.hoverNativeControls then Target(record) end
+        end
+    end
+    local information = Map.Modules.Information.GetState()
+    if information.active then
+        if options.clockVisible then Root(Record("BootyMapHoverClockRow", information.clockRow)) end
+        if options.coordsVisible then Root(Record("BootyMapHoverCoordsRow", information.coordsRow)) end
+        if options.hoverInformation then Target(Record("BootyMapHoverInformation", information.frame)) end
+    end
+    if buttonPanel and options.collectButtons and state.buttonCount > 0 then
+        Root(Record("BootyMapHoverPanel", buttonPanel))
+        for _, record in pairs(buttonRecords) do Root(record) end
+        if options.hoverButtons then Target(records.BootyMapHoverPanel) end
+    end
+    if options.hoverBorder then
+        if options.border == "native" then Target(records.MinimapBorder); Target(records.MinimapBorderTop)
+        elseif options.border == "booty" and surface then Target(Record("BootyMapHoverBorder", surface)) end
+    end
+    if editor and Enabled(editor:IsShown()) then Root(Record("BootyMapHoverEditor", editor)) end
+    Map.Modules.Hover.Apply(options, roots, targets)
+end
+function Native.RefreshHover()
+    if not state.active or not store then return false, "Native minimap is not active." end
+    local ok, reason = Call(HoverApply)
+    if not ok then return Notify(reason) end
     return true
 end
 function Native.Stop()
@@ -722,6 +777,7 @@ function Native.Stop()
         if not ran or ok == false then table.insert(failures, tostring(ran and reason or ok)) end
     end
     Attempt(CancelDrag)
+    Attempt(Map.Modules.Hover.Stop)
     Attempt(Map.Modules.Information.Stop)
     Attempt(StopButtons)
     Attempt(HideOwn, editor); Attempt(HideOwn, surface)
@@ -757,6 +813,7 @@ local function ApplyAll()
     -- StartMoving writes transient anchors owned by this drag session. Resolve
     -- them before a settings/profile refresh performs ownership comparisons.
     CancelDrag()
+    Map.Modules.Hover.Stop()
     local options = store.preferences
     state.compatibility = ""
     local map, cluster = Record("Minimap"), Record("MinimapCluster")
@@ -783,6 +840,7 @@ local function ApplyAll()
         Note("pfQuest corner clipping may remain circular; BootyMap does not modify pfQuest or pfUI globals.")
     end
     RefreshEditor()
+    Map.Modules.Hover.Refresh()
 end
 function Native.Apply(value)
     if not state.active then return false, "Native minimap is not active." end
@@ -809,3 +867,24 @@ function Native.GetState() return state end
 function Native.ReportInformationFailure(reason) return Notify(reason) end
 function Native.SetFailureObserver(callback) failureObserver = type(callback) == "function" and callback or nil end
 function Native.SetPositionObserver(callback) positionObserver = type(callback) == "function" and callback or nil end
+Map.Modules.Hover.Configure({
+    refresh = HoverApply,
+    initialAlpha = function(record, value) Property(record, "alpha", ReadAlpha, SetAlpha, value) end,
+    animateAlpha = function(record, value)
+        local lease = record.leases.alpha
+        if not lease or not PropertyEqual("alpha", record.frame:GetAlpha(), lease.applied) then Fail(record.name .. " alpha has another owner.") end
+        if PropertyEqual("alpha", lease.applied, value) then return end
+        local result = record.frame:SetAlpha(value)
+        local after = record.frame:GetAlpha(); lease.applied = after
+        if result == false or not PropertyEqual("alpha", after, value) then Fail(WriteFailure(record, "alpha", value, after)) end
+    end,
+    releaseAlpha = function(record) local ok, reason = ReleaseProperty(record, "alpha"); if not ok then Fail(reason) end end,
+    bind = function(record, enabled)
+        if not record.frame.GetScript then return end
+        if record.name == "BootyMapHoverPanel" then record.frame:EnableMouse(enabled and 1 or nil) end
+        Script(record, "OnEnter", enabled and HoverEnter or nil)
+        Script(record, "OnLeave", enabled and HoverLeave or nil)
+    end,
+    force = function() return state.editing or dragging end,
+    failure = Notify,
+})

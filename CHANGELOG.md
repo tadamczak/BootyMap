@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.1.0-dev.5 - 2026-10-08
+
+- Add independent hover visibility for zone, information, addon panel, native controls and borders.
+- Add idle opacity, hide delay and fade duration; Edit keeps selected elements visible.
+- Preserve native tooltip/click/status behavior and restore original callbacks/opacity when disabled.
+- Stop transition timers at rest and suspend clock/coordinate updates when fully faded out.
+- Native rendering/input/performance acceptance remains pending.
+
 ## 0.1.0-dev.4 - 2026-10-08
 
 - Fix false cluster ownership failures when settings refresh during native dragging.

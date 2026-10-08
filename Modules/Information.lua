@@ -3,7 +3,7 @@ local Information = {}
 Map.Modules.Information = Information
 local UI, Service = (Map.UI or BootyLib.UI).Components, Map.Services.Information
 local state = {active = false, elapsed = 0, clockElapsed = 0, updates = 0}
-local frame, clockText, coordsText, options, lastClock, lastCoords, wasOpen
+local frame, clockText, coordsText, clockRow, coordsRow, options, lastClock, lastCoords, wasOpen
 local fonts = {friz = "Fonts\\FRIZQT__.TTF", arial = "Fonts\\ARIALN.TTF"}
 local function OpenMap()
     local shown = WorldMapFrame and WorldMapFrame:IsShown()
@@ -38,7 +38,7 @@ local function OnUpdate()
     end
 end
 local function Wake()
-    if state.active and frame:IsVisible() then
+    if state.active and not state.hoverPaused and frame:IsVisible() then
         frame:SetScript("OnUpdate", OnUpdate)
         if options.coordsVisible then
             frame:RegisterEvent("PLAYER_ENTERING_WORLD"); frame:RegisterEvent("ZONE_CHANGED")
@@ -58,22 +58,30 @@ local function Ensure()
     frame:SetAllPoints(Minimap); frame:EnableMouse(false)
     clockText = UI.CreateComponentLabel(frame, "", "gold")
     coordsText = UI.CreateComponentLabel(frame, "", "gold")
+    clockRow = UI.CreateContainer(nil, frame); coordsRow = UI.CreateContainer(nil, frame)
+    clockRow:EnableMouse(false); coordsRow:EnableMouse(false)
     frame:SetScript("OnShow", Wake); frame:SetScript("OnHide", Sleep)
     frame:SetScript("OnEvent", function()
         local ok, reason = pcall(OnEvent)
         if not ok then Map.Modules.NativeMinimap.ReportInformationFailure(tostring(reason)) end
     end)
     state.frame, state.clockText, state.coordsText = frame, clockText, coordsText
+    state.clockRow, state.coordsRow = clockRow, coordsRow
 end
-local function Layout(label, visible, position, offset)
+local function Layout(label, row, visible, position, offset)
     label:SetFont(fonts[options.informationFont], options.informationFontSize, "")
     local color = options.informationColor
     label:SetTextColor(color[1], color[2], color[3], 1)
     label:SetWidth(math.max(options.size, 120)); label:SetHeight(options.informationFontSize + 4)
+    row:SetWidth(math.max(options.size, 120)); row:SetHeight(options.informationFontSize + 4)
     label:ClearAllPoints()
-    if position == "top" then label:SetPoint("BOTTOM", Minimap, "TOP", 0, offset)
-    else label:SetPoint("TOP", Minimap, "BOTTOM", 0, -offset) end
-    if visible then label:Show() else label:Hide() end
+    row:ClearAllPoints()
+    if position == "top" then
+        label:SetPoint("BOTTOM", Minimap, "TOP", 0, offset); row:SetPoint("BOTTOM", Minimap, "TOP", 0, offset)
+    else
+        label:SetPoint("TOP", Minimap, "BOTTOM", 0, -offset); row:SetPoint("TOP", Minimap, "BOTTOM", 0, -offset)
+    end
+    if visible then label:Show(); row:Show() else label:Hide(); row:Hide() end
 end
 local function ResolveSide(side)
     local _, y = Minimap:GetCenter()
@@ -103,14 +111,24 @@ function Information.Apply(value)
     local coordsOffset = coordsSide == value.zonePosition and offset or 4
     if value.clockVisible and coordsSide == clockSide then coordsOffset = coordsOffset + value.informationFontSize + 6 end
     state.clockSide, state.coordsSide, state.clockOffset, state.coordsOffset = clockSide, coordsSide, clockOffset, coordsOffset
-    Layout(clockText, value.clockVisible, clockSide, clockOffset)
-    Layout(coordsText, value.coordsVisible, coordsSide, coordsOffset)
+    Layout(clockText, clockRow, value.clockVisible, clockSide, clockOffset)
+    Layout(coordsText, coordsRow, value.coordsVisible, coordsSide, coordsOffset)
     frame:UnregisterAllEvents()
     if Minimap:IsVisible() then Update(true) end
     frame:Show(); Wake()
 end
 function Information.Stop()
-    state.active = false; options = nil
+    state.active, state.hoverPaused = false, false; options = nil
     if frame then Sleep(); frame:UnregisterAllEvents(); frame:Hide() end
+end
+function Information.SetHoverPaused(value)
+    if state.hoverPaused == (value == true) then return end
+    state.hoverPaused = value == true
+    if not frame then return end
+    if state.hoverPaused then Sleep()
+    elseif state.active and frame:IsVisible() and Map.Modules.NativeMinimap.GetState().active then Update(true); Wake() end
+end
+function Information.SetHoverRows(value)
+    if clockRow then clockRow:EnableMouse(value and 1 or nil); coordsRow:EnableMouse(value and 1 or nil) end
 end
 function Information.GetState() return state end
