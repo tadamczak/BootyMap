@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.1.0-dev.14 — 2026-10-09
+
+- Use current Booty names for shared controls and documentation assets.
+
 ## 0.1.0-dev.13 - 2026-10-09
 
 - Preserve native launcher frame-level/strata changes during panel refresh, including MinimapShopFrame, without disabling map customization.

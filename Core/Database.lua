@@ -16,7 +16,7 @@ local function Defaults(store)
     store.presentation.minimap = store.presentation.minimap or {angle = 225}
     store.addonVersion = Map.version
 end
--- BootyMap owns new preferences only; it does not claim historical MOS data.
+-- BootyMap owns new preferences only; it does not claim historical monolith data.
 BootyLib.Data.RegisterOwner("map", "BootyMapDB", function() return false end, Defaults)
 function Database.Ensure()
     local valid, failure = Configuration.Validate(BootyMapDB)
