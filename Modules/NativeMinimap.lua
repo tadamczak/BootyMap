@@ -637,6 +637,18 @@ local function ButtonCandidate(frame, exceptions, includes)
     return frame:GetScript("OnUpdate") == nil and
         (frame:GetScript("OnMouseUp") ~= nil or (kind ~= "Frame" and frame:GetScript("OnClick") ~= nil))
 end
+function Native.ApplyButtonLayer(record, key, reader, setter, desired)
+    record.foreignLayers = record.foreignLayers or {}
+    if record.foreignLayers[key] then return end
+    local lease = record.leases[key]
+    if lease and not PropertyEqual(key, reader(record.frame), lease.applied) then
+        local ok, reason = ReleaseProperty(record, key)
+        if not ok then Fail(reason) end
+        record.foreignLayers[key] = true
+        return
+    end
+    Property(record, key, reader, setter, desired)
+end
 local function NoDrag() end
 local function Buttons(options)
     if not options.collectButtons then StopButtons(); return end
@@ -716,8 +728,8 @@ local function Buttons(options)
         Property(record, "scale", ReadScale, SetScale, 1)
         Property(record, "width", ReadWidth, SetWidth, size)
         Property(record, "height", ReadHeight, SetHeight, size)
-        Property(record, "strata", ReadStrata, SetStrata, "MEDIUM")
-        Property(record, "level", ReadLevel, SetLevel, buttonPanel:GetFrameLevel() + 1)
+        Native.ApplyButtonLayer(record, "strata", ReadStrata, SetStrata, "MEDIUM")
+        Native.ApplyButtonLayer(record, "level", ReadLevel, SetLevel, buttonPanel:GetFrameLevel() + 1)
         local column, row = math.mod(index - 1, columns), math.floor((index - 1) / columns)
         Property(record, "points", ReadPoints, SetPoints, {{"TOPLEFT", buttonPanel, "TOPLEFT", 6 + column * (size + gap), -6 - row * (size + gap)}})
         Script(record, "OnDragStart", NoDrag); Script(record, "OnDragStop", NoDrag)

@@ -70,7 +70,8 @@ order and exceptions use comma-separated button frame names; `/bm buttons`
 lists collected names. Unlisted buttons sort alphabetically. Hidden buttons
 keep their slots and native visibility. `/bm refresh` discovers buttons created
 late; normal discovery also runs when addons load or you enter the world.
-Disabling collection restores the buttons' original layouts.
+Disabling collection restores the buttons' original layouts. Layer changes made
+by their owning addons remain intact.
 
 In **Map > Information**, enable the digital clock or player coordinates. Choose
 local or server time, 12/24-hour format and information appearance. Coordinates

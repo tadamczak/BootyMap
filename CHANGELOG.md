@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.1.0-dev.13 - 2026-10-09
+
+- Preserve native launcher frame-level/strata changes during panel refresh, including MinimapShopFrame, without disabling map customization.
+
 ## 0.1.0-dev.12 - 2026-10-08
 
 - Check minimap ownership without native dimension reads on unchanged pfQuest frames. Public geometry remains live and foreign ownership is preserved.
